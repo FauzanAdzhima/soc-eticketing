@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Exception;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\TicketLog;
 
 class Ticket extends Model
 {
@@ -52,7 +53,32 @@ class Ticket extends Model
             throw new Exception("Unauthorized role");
         }
 
+        // validasi assignment
+        $assigned = $this->assignments()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->exists();
+
+        if (!$assigned) {
+            throw new Exception("You are not assigned to this ticket");
+        }
+
+        // simpan status lama
+        $oldStatus = $this->status;
+
+        // update status
         $this->status = $newStatus;
         $this->save();
+
+        // simpan log
+        TicketLog::create([
+            'ticket_id' => $this->id,
+            'user_id' => $user->id ?? null,
+            'action' => 'status_updated',
+            'data' => json_encode([
+                'from' => $oldStatus,
+                'to' => $newStatus
+            ])
+        ]);
     }
 }

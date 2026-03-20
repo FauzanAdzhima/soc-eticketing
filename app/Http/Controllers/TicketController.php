@@ -40,9 +40,11 @@ class TicketController extends Controller
         $ticket = Ticket::findOrFail($id);
 
         $newStatus = $request->status;
+        // $user = Auth::user();
+        $user = $request->user();
 
         try {
-            $ticket->updateStatus($newStatus, Auth::user());
+            $ticket->updateStatus($newStatus, $user);
 
             return response()->json([
                 'message' => 'Status updated',

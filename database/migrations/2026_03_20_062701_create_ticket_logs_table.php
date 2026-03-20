@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('ticket_logs', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('ticket_id');
+            $table->foreignId('user_id')->nullable();
+            $table->string('action');
+            $table->json('data')->nullable();
             $table->timestamps();
         });
     }
