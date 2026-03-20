@@ -11,14 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ticket_assignments', function (Blueprint $table) {
+        Schema::create('organizations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ticket_id');
-            $table->foreignId('user_id');
-            $table->timestamp('assigned_at')->nullable();
-            $table->timestamp('unassigned_at')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->string('name')->unique();
             $table->timestamps();
+            $table->timestamp('deleted_at')->nullable();
         });
     }
 
@@ -27,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('ticket_assignments');
+        Schema::dropIfExists('organizations');
     }
 };

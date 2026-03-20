@@ -11,3 +11,5 @@ Route::get('/user', function (Request $request) {
 Route::apiResource('tickets', TicketController::class);
 
 Route::patch('/tickets/{id}/status', [TicketController::class, 'updateStatus'])->middleware('auth:sanctum');
+
+Route::post('/tickets/{id}/assign', [TicketController::class, 'assign'])->middleware('auth:sanctum');
