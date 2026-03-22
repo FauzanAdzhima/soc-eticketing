@@ -64,14 +64,14 @@ class TicketController extends Controller
         $ticket = Ticket::findOrFail($id);
         $user = $request->user();
 
-        // 🔐 1. Validasi login
+        // 1. Validasi login
         if (!$user) {
             return response()->json([
                 'error' => 'Unauthenticated'
             ], 401);
         }
 
-        // 🔐 2. Validasi role (flexible)
+        // 2. Validasi role (flexible)
         $isAssigned = $ticket->assignments()
             ->where('user_id', $user->id)
             ->where('is_active', true)
@@ -86,7 +86,7 @@ class TicketController extends Controller
             ], 403);
         }
 
-        // 🔐 3. Validasi user tujuan
+        // 3. Validasi user tujuan
         $targetUser = User::findOrFail($request->user_id);
 
         if (!$targetUser->hasAnyRole(['analis', 'responder', 'pic'])) {
@@ -95,14 +95,14 @@ class TicketController extends Controller
             ], 400);
         }
 
-        // 🔐 4. Validasi ticket status
+        // 4. Validasi ticket status
         if ($ticket->status === 'closed') {
             return response()->json([
                 'error' => 'Cannot assign closed ticket'
             ], 400);
         }
 
-        // 🔐 5. Optional: hindari assign ke user yang sama
+        // 5. Optional: hindari assign ke user yang sama
         $alreadyAssigned = $ticket->assignments()
             ->where('user_id', $targetUser->id)
             ->where('is_active', true)
@@ -114,7 +114,7 @@ class TicketController extends Controller
             ], 400);
         }
 
-        // 🚀 6. Jalankan assign
+        // 6. Jalankan assign
         $ticket->assignTo($targetUser->id, $user);
 
         return response()->json([

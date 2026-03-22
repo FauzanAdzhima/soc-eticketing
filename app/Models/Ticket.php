@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\TicketLog;
 use App\Models\TicketAssignment;
 use App\Events\TicketAssigned;
+use Illuminate\Support\Facades\Log;
 
 class Ticket extends Model
 {
@@ -14,6 +15,7 @@ class Ticket extends Model
         'public_id',
         'title',
         'description',
+        'status',
         // 'created_by',
     ];
 
@@ -36,47 +38,47 @@ class Ticket extends Model
         return in_array($newStatus, $allowed[$this->status] ?? []);
     }
 
-    public function updateStatus($newStatus, $user)
+    public function updateStatus($newStatus, $user, $isSystem = false)
     {
-        // validasi transisi
         if (!$this->canTransitionTo($newStatus)) {
             throw new Exception("Invalid status transition");
         }
 
-        // validasi role
         $roleMap = [
-            'triaged' => 'pic',
-            'analyzed' => 'analis',
+            'triaged' => 'analis',
+            'analyzed' => 'responder',
             'responded' => 'responder',
             'closed' => 'koordinator',
         ];
 
-        if (isset($roleMap[$newStatus]) && !$user->hasRole($roleMap[$newStatus])) {
+        if (
+            !$isSystem &&
+            isset($roleMap[$newStatus]) &&
+            !$user->hasRole($roleMap[$newStatus])
+        ) {
             throw new Exception("Unauthorized role");
         }
 
-        // validasi assignment
-        $assigned = $this->assignments()
-            ->where('user_id', $user->id)
-            ->where('is_active', true)
-            ->exists();
+        if (!$isSystem) {
+            $assigned = $this->assignments()
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->exists();
 
-        if (!$assigned) {
-            throw new Exception("You are not assigned to this ticket");
+            if (!$assigned) {
+                throw new Exception("You are not assigned to this ticket");
+            }
         }
 
-        // simpan status lama
         $oldStatus = $this->status;
 
-        // update status
         $this->status = $newStatus;
         $this->save();
 
-        // simpan log
         TicketLog::create([
             'ticket_id' => $this->id,
-            'user_id' => $user->id ?? null,
-            'action' => 'status_updated',
+            'user_id' => $user->id,
+            'action' => $isSystem ? 'auto_status_updated' : 'status_updated',
             'data' => json_encode([
                 'from' => $oldStatus,
                 'to' => $newStatus
