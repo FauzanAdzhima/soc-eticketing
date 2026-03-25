@@ -1,47 +1,45 @@
-<x-guest-layout>
+<x-app-layout>
     <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    <x-auth-session-status :status="session('status')" />
 
-    <form method="POST" action="{{ route('login') }}">
-        @csrf
+    <div class="flex min-h-screen flex-row">
+        <section class="hidden w-2/3 lg:block relative">
+            <div class="absolute inset-0 bg-cover bg-center"
+                style="background-image: url('/images/indonesia-flag-texture.jpg');">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+            </div>
+        </section>
 
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
+        <section class="flex w-full flex-col items-center justify-center bg-zinc-500 px-8 lg:w-1/3">
+            <div class="w-full max-w-sm space-y-8">
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
+                <div class="flex flex-col items-center space-y-4">
+                    <img src="{{ asset('images/logo_csirt.webp') }}" alt="CSIRT Logo" class="h-24 w-auto">
+                    <div class="text-center">
+                        <p class="text-sm text-gray-500">Login sesuai email dan password</p>
+                    </div>
+                </div>
 
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
+                <form action="{{ route('login') }}" method="POST" class="space-y-6">
+                    @csrf
 
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+                    <flux:input type="email" name="email" id="email" label="Email"
+                        placeholder="email@kepriprov.go.id" :value="old('email')" required autofocus
+                        autocomplete="email" icon="envelope" />
 
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
-            </label>
-        </div>
+                    <flux:input type="password" name="password" label="Kata Sandi" placeholder="Masukkan kata sandi"
+                        required autocomplete="current-password" required icon="key" viewable />
 
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
+                    <flux:button type="submit" variant="primary" class="w-full py-3">
+                        Masuk
+                    </flux:button>
+                </form>
 
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
-        </div>
-    </form>
-</x-guest-layout>
+                <div class="mt-12 text-center text-xs text-gray-400">
+                    © 2026 - Kepriprov-CSIRT
+
+                </div>
+            </div>
+        </section>
+    </div>
+</x-app-layout>

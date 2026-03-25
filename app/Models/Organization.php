@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Testing\Fluent\Concerns\Has;
 
 class Organization extends Model
@@ -15,4 +16,9 @@ class Organization extends Model
     protected $fillable = [
         'name',
     ];
+
+    public function reports(): HasMany
+    {
+        return $this->hasMany(Report::class, 'reporter_organization_id');
+    }
 }
