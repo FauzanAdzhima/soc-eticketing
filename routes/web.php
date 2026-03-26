@@ -10,7 +10,7 @@ Route::get('/', function () {
 
 Route::get('/report/category', function () {
     return view('report.category');
-});
+})->name('ticket.create');
 
 Route::get('/dashboard', function () {
     return view('dashboard');

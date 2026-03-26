@@ -4,20 +4,74 @@ namespace App\Models;
 
 use Exception;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\TicketLog;
 use App\Models\TicketAssignment;
+use App\Models\TicketEvidence;
 use App\Events\TicketAssigned;
 use Illuminate\Support\Facades\Log;
 
 class Ticket extends Model
 {
+    use HasFactory, SoftDeletes;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
     protected $fillable = [
         'public_id',
+        'ticket_number',
         'title',
-        'description',
+        'reporter_name',
+        'reporter_email',
+        'reporter_phone',
+        'reporter_organization_id',
+        'reporter_organization_name',
+        'reported_at',
+        'report_status',
+        'report_is_valid',
+        'incident_time',
+        'incident_category_id', // Make sure this matches your foreign key
+        'incident_severity',   // The only severity column we keep
+        'incident_description',
         'status',
-        // 'created_by',
+        'sub_status',
+        'created_by',
+        'closed_at',
     ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'reported_at' => 'datetime',
+        'incident_time' => 'datetime',
+        'report_is_valid' => 'boolean',
+        'closed_at' => 'datetime',
+    ];
+
+    /**
+     * Relationship with Organization
+     */
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class, 'reporter_organization_id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(IncidentCategory::class, 'incident_category_id');
+    }
+
+    public function evidences()
+    {
+        return $this->hasMany(TicketEvidence::class);
+    }
 
     const STATUS_OPEN = 'open';
     const STATUS_TRIAGED = 'triaged';

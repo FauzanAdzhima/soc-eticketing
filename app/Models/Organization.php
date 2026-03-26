@@ -21,4 +21,9 @@ class Organization extends Model
     {
         return $this->hasMany(Report::class, 'reporter_organization_id');
     }
+
+    public function tickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class, 'reporter_organization_id');
+    }
 }

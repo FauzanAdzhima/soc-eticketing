@@ -4,10 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\TicketService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
-use Exception;
+use Illuminate\Support\Facades\Validator;
 
 class TicketController extends Controller
 {
@@ -16,25 +15,59 @@ class TicketController extends Controller
         return Ticket::latest()->get();
     }
 
-    public function store(Request $request)
+    public function store(Request $request, TicketService $ticketService)
     {
-        // $request->validate([
-        //     'title' => 'required|string|max:255',
-        //     'description' => 'required|string',
-        //     'severity' => 'nullable|string|max:50',
-        // ]);
+        $user = $request->user();
+        if ($user && !$user->hasRole('pic')) {
+            return response()->json([
+                'message' => 'Hanya role PIC yang dapat membuat tiket melalui akun.'
+            ], 403);
+        }
 
-        $ticket = Ticket::create([
-            'public_id' => Str::uuid(),
-            'title' => $request->title,
-            'description' => $request->description,
-            // 'severity' => $request->severity,
-            // 'created_by' => auth()->id(),
+        $validator = Validator::make($request->all(), [
+            'title' => ['required', 'string', 'max:255'],
+            'reporter_name' => ['required', 'string', 'max:255'],
+            'reporter_email' => ['required', 'email', 'max:255'],
+            'reporter_phone' => ['nullable', 'string', 'max:30'],
+            'reporter_organization_id' => ['nullable', 'exists:organizations,id'],
+            'reporter_organization_name' => ['nullable', 'string', 'max:255'],
+            'incident_category_id' => ['required', 'exists:incident_categories,id'],
+            'incident_severity' => ['nullable', 'in:Low,Medium,High,Critical'],
+            'incident_description' => ['required', 'string'],
+            'incident_time' => ['required', 'date'],
+            'evidence_files' => ['nullable', 'array'],
+            'evidence_files.*' => ['file', 'max:5120', 'mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,csv,txt,zip,rar'],
         ]);
 
-        return response()->json($ticket, 201);
+        $validator->after(function ($validator) use ($request) {
+            $hasOrgId = filled($request->input('reporter_organization_id'));
+            $hasOrgName = filled($request->input('reporter_organization_name'));
 
-        // dd($request->all());
+            if ($hasOrgId === $hasOrgName) {
+                $validator->errors()->add(
+                    'reporter_organization_id',
+                    'Pilih salah satu: organization ID (ASN/pegawai) atau organization name manual.'
+                );
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $payload = $validator->validated();
+        $payload['created_by'] = $user?->id;
+        $payload['evidence_files'] = $request->file('evidence_files', []);
+
+        $ticket = $ticketService->createTicket($payload);
+
+        return response()->json([
+            'message' => 'Ticket created successfully',
+            'data' => $ticket,
+        ], 201);
     }
 
     public function updateStatus(Request $request, $id)
