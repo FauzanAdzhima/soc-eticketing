@@ -9,3 +9,25 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 [x-cloak] { display: none !important; }
+
+/* Global pointer affordance for interactive elements */
+a,
+button,
+summary,
+[role="button"],
+[wire\:click],
+[wire\:click\.prevent],
+[wire\:click\.stop],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+    cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+[aria-disabled="true"] {
+    cursor: not-allowed;
+}

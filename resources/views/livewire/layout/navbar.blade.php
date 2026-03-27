@@ -1,0 +1,38 @@
+<div class="sticky top-0 z-30 border-b border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/95">
+    <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+            <button type="button" @click="$dispatch('toggle-sidebar-mobile')"
+                class="inline-flex rounded-md p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800 lg:hidden"
+                aria-label="Toggle sidebar mobile">
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                        d="M3 5.75A.75.75 0 0 1 3.75 5h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 5.75Zm0 4.25a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 10Zm.75 3.5a.75.75 0 0 0 0 1.5h12.5a.75.75 0 0 0 0-1.5H3.75Z"
+                        clip-rule="evenodd" />
+                </svg>
+            </button>
+
+            <button type="button" @click="$dispatch('toggle-sidebar')"
+                class="hidden rounded-md p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800 lg:inline-flex"
+                aria-label="Toggle sidebar collapse">
+                <svg class="h-5 w-5 transition-transform duration-300" :class="sidebarCollapsed ? 'rotate-180' : ''"
+                    viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                        d="M11.78 4.22a.75.75 0 0 1 0 1.06L7.06 10l4.72 4.72a.75.75 0 1 1-1.06 1.06l-5.25-5.25a.75.75 0 0 1 0-1.06l5.25-5.25a.75.75 0 0 1 1.06 0Z"
+                        clip-rule="evenodd" />
+                </svg>
+            </button>
+
+            <div>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">SOC eTicketing</p>
+                <h1 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{{ $this->userName }}</h1>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <flux:button type="submit" size="sm" variant="danger">Logout</flux:button>
+            </form>
+        </div>
+    </div>
+</div>

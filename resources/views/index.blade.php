@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-public-layout>
     <flux:main container>
 
         <section id="section-header">
@@ -30,4 +30,4 @@
 
         @include('report.pgp-section')
     </flux:main>
-</x-app-layout>
+</x-public-layout>
