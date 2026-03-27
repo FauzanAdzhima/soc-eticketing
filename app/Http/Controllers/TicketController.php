@@ -6,24 +6,30 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 
 class TicketController extends Controller
 {
-    public function index()
+    public function index(): JsonResponse
     {
-        return Ticket::latest()->get();
+        $this->authorize('viewAny', Ticket::class);
+
+        return response()->json(Ticket::latest()->get());
     }
 
-    public function store(Request $request, TicketService $ticketService)
+    public function storePublic(Request $request, TicketService $ticketService): JsonResponse
     {
-        $user = $request->user();
-        if ($user && !$user->hasRole('pic')) {
-            return response()->json([
-                'message' => 'Hanya role PIC yang dapat membuat tiket melalui akun.'
-            ], 403);
-        }
+        return $this->storeTicket($request, $ticketService, null);
+    }
 
+    public function storeAuthenticated(Request $request, TicketService $ticketService): JsonResponse
+    {
+        return $this->storeTicket($request, $ticketService, $request->user()?->id);
+    }
+
+    private function storeTicket(Request $request, TicketService $ticketService, ?int $createdBy): JsonResponse
+    {
         $validator = Validator::make($request->all(), [
             'title' => ['required', 'string', 'max:255'],
             'reporter_name' => ['required', 'string', 'max:255'],
@@ -59,7 +65,7 @@ class TicketController extends Controller
         }
 
         $payload = $validator->validated();
-        $payload['created_by'] = $user?->id;
+        $payload['created_by'] = $createdBy;
         $payload['evidence_files'] = $request->file('evidence_files', []);
 
         $ticket = $ticketService->createTicket($payload);
@@ -70,12 +76,12 @@ class TicketController extends Controller
         ], 201);
     }
 
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request, int $id): JsonResponse
     {
         $ticket = Ticket::findOrFail($id);
+        $this->authorize('updateStatus', $ticket);
 
         $newStatus = $request->status;
-        // $user = Auth::user();
         $user = $request->user();
 
         try {
@@ -92,34 +98,12 @@ class TicketController extends Controller
         }
     }
 
-    public function assign(Request $request, $id)
+    public function assign(Request $request, int $id): JsonResponse
     {
         $ticket = Ticket::findOrFail($id);
+        $this->authorize('assign', $ticket);
         $user = $request->user();
 
-        // 1. Validasi login
-        if (!$user) {
-            return response()->json([
-                'error' => 'Unauthenticated'
-            ], 401);
-        }
-
-        // 2. Validasi role (flexible)
-        $isAssigned = $ticket->assignments()
-            ->where('user_id', $user->id)
-            ->where('is_active', true)
-            ->exists();
-
-        if (
-            !$user->hasAnyRole(['pic', 'analis', 'responder'])
-            && !$isAssigned
-        ) {
-            return response()->json([
-                'error' => 'Unauthorized'
-            ], 403);
-        }
-
-        // 3. Validasi user tujuan
         $targetUser = User::findOrFail($request->user_id);
 
         if (!$targetUser->hasAnyRole(['analis', 'responder', 'pic'])) {
@@ -128,14 +112,6 @@ class TicketController extends Controller
             ], 400);
         }
 
-        // 4. Validasi ticket status
-        if ($ticket->status === 'closed') {
-            return response()->json([
-                'error' => 'Cannot assign closed ticket'
-            ], 400);
-        }
-
-        // 5. Optional: hindari assign ke user yang sama
         $alreadyAssigned = $ticket->assignments()
             ->where('user_id', $targetUser->id)
             ->where('is_active', true)
@@ -147,7 +123,6 @@ class TicketController extends Controller
             ], 400);
         }
 
-        // 6. Jalankan assign
         $ticket->assignTo($targetUser->id, $user);
 
         return response()->json([

@@ -8,8 +8,18 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::apiResource('tickets', TicketController::class);
+Route::post('/tickets/public', [TicketController::class, 'storePublic'])->middleware('throttle:30,1');
 
-Route::patch('/tickets/{id}/status', [TicketController::class, 'updateStatus'])->middleware('auth:sanctum');
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/tickets', [TicketController::class, 'index'])
+        ->middleware('permission:ticket.view');
 
-Route::post('/tickets/{id}/assign', [TicketController::class, 'assign'])->middleware('auth:sanctum');
+    Route::post('/tickets', [TicketController::class, 'storeAuthenticated'])
+        ->middleware('permission:ticket.create.pic');
+
+    Route::patch('/tickets/{id}/status', [TicketController::class, 'updateStatus'])
+        ->middleware('permission:ticket.respond');
+
+    Route::post('/tickets/{id}/assign', [TicketController::class, 'assign'])
+        ->middleware('permission:ticket.assign');
+});
