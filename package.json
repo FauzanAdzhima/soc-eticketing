@@ -1,12 +1,16 @@
 {
     "private": true,
     "type": "module",
+    "overrides": {
+        "picomatch": "^4.0.4"
+    },
     "scripts": {
         "build": "vite build",
         "dev": "vite"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.2.2",
+        "chart.js": "^4.4.8",
         "alpinejs": "^3.4.2",
         "axios": "^1.7.4",
         "concurrently": "^9.0.1",

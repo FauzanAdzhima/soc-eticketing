@@ -44,7 +44,7 @@
                 <p class="text-zinc-600 dark:text-zinc-300"><span class="font-medium">Organisasi / OPD:</span>
                     {{ $this->user?->organization?->name ?? '-' }}</p>
                 <p class="text-zinc-600 dark:text-zinc-300"><span class="font-medium">Role:</span>
-                    {{ $this->user?->roles->pluck('name')->join(', ') ?: '-' }}</p>
+                    {{ $this->user?->roles->map(fn ($r) => role_label($r->name))->filter()->join(', ') ?: '-' }}</p>
             </div>
 
             <div>

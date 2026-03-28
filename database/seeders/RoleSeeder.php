@@ -17,6 +17,23 @@ class RoleSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $permissions = [
+            'dashboard.view',
+            'user.view',
+            'user.create',
+            'user.update',
+            'user.delete',
+            'role.view',
+            'role.create',
+            'role.update',
+            'role.delete',
+            'opd.view',
+            'opd.create',
+            'opd.update',
+            'opd.delete',
+            'incident-category.view',
+            'incident-category.create',
+            'incident-category.update',
+            'incident-category.delete',
             'ticket.create.public',
             'ticket.create.pic',
             'ticket.view',

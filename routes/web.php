@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Livewire\Pages\Admin\IncidentCategories\IndexPage as AdminIncidentCategoriesIndexPage;
+use App\Livewire\Pages\Admin\Organizations\IndexPage as AdminOrganizationsIndexPage;
+use App\Livewire\Pages\Admin\Roles\IndexPage as AdminRolesIndexPage;
+use App\Livewire\Pages\Admin\Users\IndexPage as AdminUsersIndexPage;
 use App\Livewire\Pages\DashboardPage;
 use App\Livewire\Pages\ProfilePage;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +31,21 @@ Route::middleware('auth')->group(function () {
     })->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::prefix('dashboard/admin')->name('admin.')->group(function () {
+        Route::get('/users', AdminUsersIndexPage::class)
+            ->middleware('can:user.view')
+            ->name('users.index');
+        Route::get('/roles', AdminRolesIndexPage::class)
+            ->middleware('can:role.view')
+            ->name('roles.index');
+        Route::get('/organizations', AdminOrganizationsIndexPage::class)
+            ->middleware('can:opd.view')
+            ->name('organizations.index');
+        Route::get('/incident-categories', AdminIncidentCategoriesIndexPage::class)
+            ->middleware('can:incident-category.view')
+            ->name('incident-categories.index');
+    });
 });
 
 Route::get('/test', function () {

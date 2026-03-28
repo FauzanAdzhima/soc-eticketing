@@ -13,18 +13,22 @@ class IncidentCategory extends Model
     protected $fillable = [
         'name',
         'slug',
-        // 'description',
+        'description',
     ];
 
-    protected static function boot()
-{
-    parent::boot();
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
 
-    static::creating(function ($category) {
-        // Automatically generate a slug if one wasn't provided
-        if (! $category->slug) {
-            $category->slug = Str::slug($category->name);
-        }
-    });
-}
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($category) {
+            if (! $category->slug) {
+                $category->slug = Str::slug($category->name);
+            }
+        });
+    }
 }

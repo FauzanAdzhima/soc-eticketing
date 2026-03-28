@@ -31,6 +31,10 @@ class Sidebar extends Component
 
     public function isActive(string $routeName): bool
     {
+        if ($routeName === 'profile.edit') {
+            return request()->routeIs(['profile', 'profile.edit', 'profile.*']);
+        }
+
         return request()->routeIs($routeName) || request()->routeIs($routeName . '.*');
     }
 
