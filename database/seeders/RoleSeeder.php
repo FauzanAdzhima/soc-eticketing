@@ -37,6 +37,7 @@ class RoleSeeder extends Seeder
             'ticket.create.public',
             'ticket.create.pic',
             'ticket.view',
+            'ticket.view_all',
             'ticket.assign',
             'ticket.respond',
             'ticket.update_status',
@@ -83,6 +84,7 @@ class RoleSeeder extends Seeder
                 'desc' => 'Koordinator Penanganan Insiden, mengkoordinasikan penanganan insiden',
                 'permissions' => [
                     'ticket.view',
+                    'ticket.view_all',
                     'ticket.assign',
                     'ticket.close',
                 ],

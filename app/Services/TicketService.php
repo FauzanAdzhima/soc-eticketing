@@ -43,7 +43,10 @@ class TicketService
                 'incident_description' => $data['incident_description'],
                 'incident_time' => \Carbon\Carbon::parse($data['incident_time']),
                 'reported_at' => now(),
-                'status' => 'open',
+                'report_status' => Ticket::REPORT_STATUS_PENDING,
+                'report_is_valid' => false,
+                'status' => Ticket::STATUS_AWAITING_VERIFICATION,
+                'sub_status' => null,
                 'created_by' => $data['created_by'] ?? null,
             ]);
 

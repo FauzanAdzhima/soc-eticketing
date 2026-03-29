@@ -11,9 +11,6 @@ class EventServiceProvider extends ServiceProvider
      * The event to listener mappings for the application.
      */
     protected $listen = [
-        \App\Events\TicketAssigned::class => [
-            \App\Listeners\AutoUpdateTicketStatus::class,
-        ],
     ];
 
     /**

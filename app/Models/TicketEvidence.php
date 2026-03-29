@@ -24,4 +24,19 @@ class TicketEvidence extends Model
     {
         return $this->belongsTo(Ticket::class);
     }
+
+    /**
+     * Whether this file should be shown as an image thumbnail (MIME and/or extension).
+     */
+    public function isLikelyImage(): bool
+    {
+        if (filled($this->mime_type) && str_starts_with((string) $this->mime_type, 'image/')) {
+            return true;
+        }
+
+        $name = $this->original_name ?: basename((string) $this->path);
+        $ext = strtolower((string) pathinfo($name, PATHINFO_EXTENSION));
+
+        return in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif'], true);
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ticket;
+use App\Models\TicketAssignment;
 use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
@@ -79,36 +80,123 @@ class TicketController extends Controller
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $ticket = Ticket::findOrFail($id);
-        $this->authorize('updateStatus', $ticket);
-
-        $newStatus = $request->status;
         $user = $request->user();
 
+        $value = $request->input('sub_status') ?? $request->input('status');
+        if ($value === null || $value === '') {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => [
+                    'sub_status' => ['Kirim sub_status atau status.'],
+                ],
+            ], 422);
+        }
+
+        if (is_string($value) && strcasecmp($value, Ticket::STATUS_CLOSED) === 0) {
+            $this->authorize('close', $ticket);
+            try {
+                $ticket->close($user);
+
+                return response()->json([
+                    'message' => 'Ticket closed',
+                    'data' => $ticket->fresh(),
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'error' => $e->getMessage(),
+                ], 400);
+            }
+        }
+
+        $this->authorize('updateStatus', $ticket);
+
         try {
-            $ticket->updateStatus($newStatus, $user);
+            $ticket->updateStatus($value, $user);
 
             return response()->json([
                 'message' => 'Status updated',
-                'data' => $ticket
+                'data' => $ticket->fresh(),
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    public function verifyReport(Request $request, int $id): JsonResponse
+    {
+        $ticket = Ticket::findOrFail($id);
+        $this->authorize('verifyReport', $ticket);
+
+        try {
+            $ticket->verifyReport($request->user());
+
+            return response()->json([
+                'message' => 'Report verified',
+                'data' => $ticket->fresh(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    public function rejectReport(Request $request, int $id): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'reason' => ['required', 'string', 'min:15', 'max:2000'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $ticket = Ticket::findOrFail($id);
+        $this->authorize('rejectReport', $ticket);
+
+        try {
+            $ticket->rejectReport($request->user(), trim((string) $request->input('reason')));
+
+            return response()->json([
+                'message' => 'Report rejected',
+                'data' => $ticket->fresh(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
             ], 400);
         }
     }
 
     public function assign(Request $request, int $id): JsonResponse
     {
+        $validator = Validator::make($request->all(), [
+            'user_id' => ['required', 'exists:users,id'],
+            'kind' => ['nullable', 'in:'.TicketAssignment::KIND_ASSIGNED_PRIMARY.','.TicketAssignment::KIND_CONTRIBUTOR],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
         $ticket = Ticket::findOrFail($id);
         $this->authorize('assign', $ticket);
         $user = $request->user();
 
-        $targetUser = User::findOrFail($request->user_id);
+        $targetUser = User::findOrFail($request->integer('user_id'));
+        $kind = $request->input('kind', TicketAssignment::KIND_ASSIGNED_PRIMARY);
 
-        if (!$targetUser->hasAnyRole(['analis', 'responder', 'pic'])) {
+        if (! $targetUser->hasAnyRole(['analis', 'responder', 'pic'])) {
             return response()->json([
-                'error' => 'User is not valid for assignment'
+                'error' => 'User is not valid for assignment',
             ], 400);
         }
 
@@ -119,14 +207,25 @@ class TicketController extends Controller
 
         if ($alreadyAssigned) {
             return response()->json([
-                'error' => 'User already assigned'
+                'error' => 'User already assigned',
             ], 400);
         }
 
-        $ticket->assignTo($targetUser->id, $user);
+        if ($kind === TicketAssignment::KIND_CONTRIBUTOR) {
+            $ticket->addContributor($targetUser->id, $user);
+        } else {
+            $ticket->assignTo($targetUser->id, $user);
+        }
+
+        $ticket->refresh();
 
         return response()->json([
-            'message' => 'Ticket assigned successfully'
+            'message' => 'Ticket assigned successfully',
+            'data' => [
+                'report_status' => $ticket->report_status,
+                'status' => $ticket->status,
+                'sub_status' => $ticket->sub_status,
+            ],
         ]);
     }
 }

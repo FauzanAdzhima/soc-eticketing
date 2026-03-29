@@ -17,8 +17,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/tickets', [TicketController::class, 'storeAuthenticated'])
         ->middleware('permission:ticket.create.pic');
 
-    Route::patch('/tickets/{id}/status', [TicketController::class, 'updateStatus'])
-        ->middleware('permission:ticket.respond');
+    Route::patch('/tickets/{id}/status', [TicketController::class, 'updateStatus']);
+
+    Route::post('/tickets/{id}/verify', [TicketController::class, 'verifyReport'])
+        ->middleware('permission:ticket.assign');
+
+    Route::post('/tickets/{id}/reject', [TicketController::class, 'rejectReport'])
+        ->middleware('permission:ticket.assign');
 
     Route::post('/tickets/{id}/assign', [TicketController::class, 'assign'])
         ->middleware('permission:ticket.assign');

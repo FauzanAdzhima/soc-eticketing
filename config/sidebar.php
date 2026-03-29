@@ -6,13 +6,20 @@ return [
             'label' => 'Dashboard',
             'icon' => 'home',
             'route' => 'dashboard',
-            'permission' => 'dashboard.view',
+            // Umum: semua pengguna terautentikasi (PIC, analis, admin, …) — selaras dengan route /dashboard (hanya auth).
+            'permission' => null,
         ],
         [
-            'label' => 'Pengaturan Profil',
-            'icon' => 'cog-6-tooth',
+            'label' => 'Profil',
+            'icon' => 'user',
             'route' => 'profile',
             'permission' => null,
+        ],
+        [
+            'label' => 'Daftar Tiket',
+            'icon' => 'clipboard-document-list',
+            'route' => 'tickets.index',
+            'permission' => 'ticket.view',
         ],
         [
             'label' => 'Daftar User',

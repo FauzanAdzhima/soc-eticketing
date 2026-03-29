@@ -32,6 +32,9 @@ class TicketServiceTest extends TestCase
         $this->assertEquals(13, strlen($ticket->ticket_number)); // TIC-YYMM-XXXX
 
         $this->assertEquals('Critical', $ticket->incident_severity);
+        $this->assertEquals(\App\Models\Ticket::STATUS_AWAITING_VERIFICATION, $ticket->status);
+        $this->assertEquals(\App\Models\Ticket::REPORT_STATUS_PENDING, $ticket->report_status);
+        $this->assertFalse($ticket->report_is_valid);
     }
 
     public function test_it_creates_ticket_with_multiple_evidences()

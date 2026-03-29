@@ -6,11 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class TicketAssignment extends Model
 {
+    /** Primary handoff (e.g. PIC → analis); at most one active per ticket for this kind. */
+    public const KIND_ASSIGNED_PRIMARY = 'assigned_primary';
+
+    /** Additional contributor; many active rows allowed alongside primary. */
+    public const KIND_CONTRIBUTOR = 'contributor';
+
     protected $fillable = [
         'ticket_id',
         'user_id',
-        // 'role',
-        // 'is_active',
+        'kind',
+        'assigned_at',
+        'unassigned_at',
+        'is_active',
     ];
 
     public function ticket()

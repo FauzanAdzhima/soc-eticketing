@@ -75,6 +75,31 @@ class TicketAuthorizationTest extends TestCase
 
     public function test_pic_can_assign_ticket(): void
     {
+        $ticket = $this->makeTicket([
+            'report_status' => Ticket::REPORT_STATUS_VERIFIED,
+            'status' => Ticket::STATUS_OPEN,
+            'report_is_valid' => true,
+        ]);
+        $targetUser = User::factory()->create();
+        $targetUser->assignRole('analis');
+
+        $pic = User::factory()->create();
+        $pic->assignRole('pic');
+        Sanctum::actingAs($pic);
+
+        $response = $this->postJson("/api/tickets/{$ticket->id}/assign", ['user_id' => $targetUser->id]);
+        $response->assertOk();
+        $response->assertJsonPath('data.report_status', Ticket::REPORT_STATUS_VERIFIED);
+        $response->assertJsonPath('data.status', Ticket::STATUS_ON_PROGRESS);
+        $response->assertJsonPath('data.sub_status', Ticket::SUB_STATUS_TRIAGE);
+
+        $ticket->refresh();
+        $this->assertSame(Ticket::REPORT_STATUS_VERIFIED, $ticket->report_status);
+        $this->assertSame(Ticket::STATUS_ON_PROGRESS, $ticket->status);
+    }
+
+    public function test_pic_cannot_assign_before_report_is_verified(): void
+    {
         $ticket = $this->makeTicket();
         $targetUser = User::factory()->create();
         $targetUser->assignRole('analis');
@@ -84,24 +109,190 @@ class TicketAuthorizationTest extends TestCase
         Sanctum::actingAs($pic);
 
         $this->postJson("/api/tickets/{$ticket->id}/assign", ['user_id' => $targetUser->id])
+            ->assertForbidden();
+    }
+
+    public function test_koordinator_can_assign_when_ticket_already_on_progress(): void
+    {
+        $targetUser = User::factory()->create();
+        $targetUser->assignRole('analis');
+
+        $ticket = $this->makeTicket([
+            'report_status' => Ticket::REPORT_STATUS_VERIFIED,
+            'status' => Ticket::STATUS_ON_PROGRESS,
+            'sub_status' => Ticket::SUB_STATUS_TRIAGE,
+            'report_is_valid' => true,
+        ]);
+
+        $koordinator = User::factory()->create();
+        $koordinator->assignRole('koordinator');
+        Sanctum::actingAs($koordinator);
+
+        $this->postJson("/api/tickets/{$ticket->id}/assign", ['user_id' => $targetUser->id])
             ->assertOk();
+    }
+
+    public function test_assign_accepts_kind_contributor_without_replacing_primary(): void
+    {
+        $ticket = $this->makeTicket([
+            'report_status' => Ticket::REPORT_STATUS_VERIFIED,
+            'status' => Ticket::STATUS_OPEN,
+            'report_is_valid' => true,
+        ]);
+        $primary = User::factory()->create();
+        $primary->assignRole('analis');
+        $contributor = User::factory()->create();
+        $contributor->assignRole('analis');
+
+        $koordinator = User::factory()->create();
+        $koordinator->assignRole('koordinator');
+        Sanctum::actingAs($koordinator);
+
+        $this->postJson("/api/tickets/{$ticket->id}/assign", ['user_id' => $primary->id])
+            ->assertOk();
+
+        $this->postJson("/api/tickets/{$ticket->id}/assign", [
+            'user_id' => $contributor->id,
+            'kind' => TicketAssignment::KIND_CONTRIBUTOR,
+        ])->assertOk();
+
+        $this->assertSame(2, $ticket->fresh()->assignments()->where('is_active', true)->count());
+    }
+
+    public function test_assign_rejects_invalid_kind(): void
+    {
+        $ticket = $this->makeTicket([
+            'report_status' => Ticket::REPORT_STATUS_VERIFIED,
+            'status' => Ticket::STATUS_OPEN,
+            'report_is_valid' => true,
+        ]);
+        $targetUser = User::factory()->create();
+        $targetUser->assignRole('analis');
+
+        $pic = User::factory()->create();
+        $pic->assignRole('pic');
+        Sanctum::actingAs($pic);
+
+        $this->postJson("/api/tickets/{$ticket->id}/assign", [
+            'user_id' => $targetUser->id,
+            'kind' => 'invalid_kind',
+        ])->assertUnprocessable();
     }
 
     public function test_responder_can_update_status_when_assigned(): void
     {
-        $ticket = $this->makeTicket(['status' => 'analyzed']);
+        $ticket = $this->makeTicket([
+            'status' => Ticket::STATUS_ON_PROGRESS,
+            'sub_status' => Ticket::SUB_STATUS_TRIAGE,
+            'report_status' => Ticket::REPORT_STATUS_VERIFIED,
+            'report_is_valid' => true,
+        ]);
         $responder = User::factory()->create();
         $responder->assignRole('responder');
 
         TicketAssignment::create([
             'ticket_id' => $ticket->id,
             'user_id' => $responder->id,
+            'is_active' => true,
+            'kind' => TicketAssignment::KIND_ASSIGNED_PRIMARY,
         ]);
 
         Sanctum::actingAs($responder);
 
-        $this->patchJson("/api/tickets/{$ticket->id}/status", ['status' => 'responded'])
+        $this->patchJson("/api/tickets/{$ticket->id}/status", ['sub_status' => Ticket::SUB_STATUS_RESPONSE])
             ->assertOk();
+
+        $this->assertSame(Ticket::SUB_STATUS_RESPONSE, $ticket->fresh()->sub_status);
+    }
+
+    public function test_pic_can_verify_report_via_api(): void
+    {
+        $ticket = $this->makeTicket();
+        $pic = User::factory()->create();
+        $pic->assignRole('pic');
+        Sanctum::actingAs($pic);
+
+        $this->postJson("/api/tickets/{$ticket->id}/verify")->assertOk();
+
+        $ticket->refresh();
+        $this->assertSame(Ticket::REPORT_STATUS_VERIFIED, $ticket->report_status);
+        $this->assertTrue($ticket->report_is_valid);
+        $this->assertSame(Ticket::STATUS_OPEN, $ticket->status);
+    }
+
+    public function test_koordinator_can_close_ticket_via_api(): void
+    {
+        $ticket = $this->makeTicket([
+            'status' => Ticket::STATUS_ON_PROGRESS,
+            'sub_status' => Ticket::SUB_STATUS_RESOLUTION,
+            'report_status' => Ticket::REPORT_STATUS_VERIFIED,
+            'report_is_valid' => true,
+        ]);
+
+        $koordinator = User::factory()->create();
+        $koordinator->assignRole('koordinator');
+        Sanctum::actingAs($koordinator);
+
+        $this->patchJson("/api/tickets/{$ticket->id}/status", ['status' => Ticket::STATUS_CLOSED])
+            ->assertOk();
+
+        $this->assertTrue($ticket->fresh()->isClosed());
+    }
+
+    public function test_pic_can_reject_report_via_api(): void
+    {
+        $ticket = $this->makeTicket();
+        $pic = User::factory()->create();
+        $pic->assignRole('pic');
+        Sanctum::actingAs($pic);
+
+        $reason = 'Laporan tidak valid dan tidak ada bukti mendukung.';
+        $this->postJson("/api/tickets/{$ticket->id}/reject", ['reason' => $reason])->assertOk();
+
+        $ticket->refresh();
+        $this->assertSame(Ticket::REPORT_STATUS_REJECTED, $ticket->report_status);
+        $this->assertFalse($ticket->report_is_valid);
+        $this->assertSame(Ticket::STATUS_REPORT_REJECTED, $ticket->status);
+        $this->assertSame($reason, $ticket->report_rejection_reason);
+        $this->assertTrue($ticket->isReportRejected());
+    }
+
+    public function test_koordinator_cannot_assign_after_report_rejected(): void
+    {
+        $ticket = $this->makeTicket();
+        $pic = User::factory()->create();
+        $pic->assignRole('pic');
+        Sanctum::actingAs($pic);
+        $this->postJson("/api/tickets/{$ticket->id}/reject", [
+            'reason' => 'False report — tidak sesuai fakta lapangan.',
+        ])->assertOk();
+
+        $analis = User::factory()->create();
+        $analis->assignRole('analis');
+        $koordinator = User::factory()->create();
+        $koordinator->assignRole('koordinator');
+        Sanctum::actingAs($koordinator);
+
+        $this->postJson("/api/tickets/{$ticket->id}/assign", ['user_id' => $analis->id])
+            ->assertForbidden();
+    }
+
+    public function test_koordinator_cannot_close_report_rejected_ticket_via_api(): void
+    {
+        $ticket = $this->makeTicket();
+        $pic = User::factory()->create();
+        $pic->assignRole('pic');
+        Sanctum::actingAs($pic);
+        $this->postJson("/api/tickets/{$ticket->id}/reject", [
+            'reason' => 'Tiket ditolak PIC — tidak memenuhi kriteria.',
+        ])->assertOk();
+
+        $koordinator = User::factory()->create();
+        $koordinator->assignRole('koordinator');
+        Sanctum::actingAs($koordinator);
+
+        $this->patchJson("/api/tickets/{$ticket->id}/status", ['status' => Ticket::STATUS_CLOSED])
+            ->assertForbidden();
     }
 
     private function ticketPayload(): array
@@ -132,7 +323,10 @@ class TicketAuthorizationTest extends TestCase
             'incident_severity' => 'Low',
             'incident_description' => 'desc',
             'incident_category_id' => $this->category->id,
-            'status' => 'open',
+            'report_status' => Ticket::REPORT_STATUS_PENDING,
+            'report_is_valid' => false,
+            'status' => Ticket::STATUS_AWAITING_VERIFICATION,
+            'sub_status' => null,
         ], $overrides));
     }
 }
