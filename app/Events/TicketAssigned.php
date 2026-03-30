@@ -2,41 +2,48 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
+use App\Models\Ticket;
+use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class TicketAssigned
+class TicketAssigned implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $ticket;
-    public $userId; // Assigned user
-    public $assignedBy; // User who assigned the ticket
+    public function __construct(
+        public Ticket $ticket,
+        public int $userId,
+        public ?User $assignedBy = null,
+    ) {}
 
     /**
-     * Create a new event instance.
-     */
-    public function __construct($ticket, $userId, $assignedBy)
-    {
-        $this->ticket = $ticket;
-        $this->userId = $userId;
-        $this->assignedBy = $assignedBy;
-    }
-
-    /**
-     * Get the channels the event should broadcast on.
-     *
-     * @return array<int, Channel>
+     * @return array<int, PrivateChannel>
      */
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('channel-name'),
+            new PrivateChannel('user.'.$this->userId),
+        ];
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'ticket.assigned';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function broadcastWith(): array
+    {
+        return [
+            'ticket_public_id' => $this->ticket->public_id,
+            'ticket_number' => $this->ticket->ticket_number,
+            'title' => $this->ticket->title,
         ];
     }
 }

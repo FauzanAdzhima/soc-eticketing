@@ -1,4 +1,57 @@
+@php
+    $tableColCount = 7;
+    if ($analystListMode || $responderListMode) {
+        $tableColCount = 8;
+    }
+@endphp
+
 <div class="space-y-4">
+    @if ($analystListMode && auth()->user()?->can('ticket.analyze'))
+        <div wire:poll.20s="refreshAssignmentSignal" class="hidden" aria-hidden="true"></div>
+    @endif
+
+    @if ($responderListMode && auth()->user()?->can('ticket.respond'))
+        <div wire:poll.20s="refreshResponderAssignmentSignal" class="hidden" aria-hidden="true"></div>
+    @endif
+
+    @if ($analystListMode && $showNewAssignmentBanner)
+        <div
+            class="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 shadow-sm dark:border-sky-700/50 dark:bg-sky-950/40 dark:text-sky-100"
+            role="status"
+        >
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p class="min-w-0 font-medium">Ada penugasan baru untuk Anda.</p>
+                <div class="flex flex-wrap items-center gap-2">
+                    <flux:button size="sm" variant="primary" href="{{ route('tickets.index', ['scope' => 'analyst']) }}" wire:navigate>
+                        Buka daftar tiket
+                    </flux:button>
+                    <flux:button type="button" size="sm" variant="ghost" wire:click="dismissNewAssignmentBanner">
+                        Tutup
+                    </flux:button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($responderListMode && $showResponderNewAssignmentBanner)
+        <div
+            class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 shadow-sm dark:border-blue-800/50 dark:bg-blue-950/40 dark:text-blue-100"
+            role="status"
+        >
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p class="min-w-0 font-medium">Ada penugasan penanganan baru untuk Anda.</p>
+                <div class="flex flex-wrap items-center gap-2">
+                    <flux:button size="sm" variant="primary" href="{{ route('tickets.index', ['scope' => 'responder']) }}" wire:navigate>
+                        Buka daftar tiket
+                    </flux:button>
+                    <flux:button type="button" size="sm" variant="ghost" wire:click="dismissResponderNewAssignmentBanner">
+                        Tutup
+                    </flux:button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if (session()->has('toast_success'))
         <div x-data="{ open: true }" x-show="open" x-transition
             class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-700/40 dark:bg-emerald-900/20 dark:text-emerald-300">
@@ -23,23 +76,64 @@
     @endif
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <flux:heading size="xl">Daftar Tiket</flux:heading>
+        <div>
+            <flux:heading size="xl">
+                @if ($analystListMode)
+                    Analisis Tiket
+                @elseif ($responderListMode)
+                    Penanganan Tiket
+                @else
+                    Daftar Tiket
+                @endif
+            </flux:heading>
+            @if ($analystListMode)
+                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Tiket yang ditugaskan kepada Anda.</p>
+            @elseif ($responderListMode)
+                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Tiket yang telah dianalisis dan memerlukan atau sedang dalam penanganan respons.</p>
+            @endif
+        </div>
         @can('ticket.create.pic')
             <flux:button size="sm" variant="primary" wire:click="openCreateModal">Buat tiket</flux:button>
         @endcan
     </div>
 
-    <flux:card class="p-4 sm:p-5">
-        <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
-            <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
+    @if ($responderListMode)
+        <flux:card class="p-4 sm:p-5">
+            <div class="grid gap-4 sm:grid-cols-2 lg:max-w-3xl">
+                <flux:select label="Filter fase" wire:model.live="responderFilterStatus">
+                    <flux:select.option value="all">Semua</flux:select.option>
+                    <flux:select.option value="ready_for_response">Siap ditangani</flux:select.option>
+                    <flux:select.option value="in_progress">Ditangani</flux:select.option>
+                    <flux:select.option value="resolved">Selesai ditangani</flux:select.option>
+                </flux:select>
+                <flux:select label="Filter keparahan (analisis terbaru)" wire:model.live="responderFilterSeverity">
+                    <flux:select.option value="all">Semua</flux:select.option>
+                    <flux:select.option value="Low">Low</flux:select.option>
+                    <flux:select.option value="Medium">Medium</flux:select.option>
+                    <flux:select.option value="High">High</flux:select.option>
+                    <flux:select.option value="Critical">Critical</flux:select.option>
+                </flux:select>
+            </div>
+        </flux:card>
+    @endif
+
+    <flux:card class="min-w-0 p-4 sm:p-5">
+        <div class="max-w-full overflow-x-auto overscroll-x-contain rounded-lg border border-zinc-200 dark:border-zinc-700">
+            <table class="w-full min-w-max divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
                 <thead class="bg-zinc-50 dark:bg-zinc-800/80">
                     <tr>
                         <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">No. Tiket</th>
                         <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Judul</th>
-                        <th class="hidden px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200 sm:table-cell">Status</th>
-                        <th class="hidden px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200 md:table-cell">Kategori</th>
-                        <th class="hidden px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200 lg:table-cell">Assigned To</th>
-                        <th class="hidden px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200 lg:table-cell">Dibuat</th>
+                        <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Status</th>
+                        <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Kategori</th>
+                        <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Assigned To</th>
+                        <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Dibuat</th>
+                        @if ($analystListMode)
+                            <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Sudah Dianalisis</th>
+                        @endif
+                        @if ($responderListMode)
+                            <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Fase</th>
+                        @endif
                         <th class="px-3 py-2 text-right font-semibold text-zinc-700 dark:text-zinc-200">Aksi</th>
                     </tr>
                 </thead>
@@ -57,24 +151,55 @@
                             <td class="whitespace-nowrap px-3 py-2 font-mono text-xs font-medium text-zinc-900 dark:text-zinc-100">
                                 {{ $ticket->ticket_number ?? '—' }}
                             </td>
-                            <td class="max-w-xs truncate px-3 py-2 text-zinc-900 dark:text-zinc-100" title="{{ $ticket->title }}">
-                                {{ $ticket->title }}
+                            <td class="max-w-xs whitespace-nowrap px-3 py-2 text-zinc-900 dark:text-zinc-100" title="{{ $ticket->title }}">
+                                <span class="block truncate">{{ $ticket->title }}</span>
                             </td>
-                            <td class="hidden whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300 sm:table-cell">{{ $ticket->status }}</td>
-                            <td class="hidden px-3 py-2 text-zinc-600 dark:text-zinc-300 md:table-cell">{{ $ticket->category?->name ?? '—' }}</td>
-                            <td class="hidden max-w-[12rem] truncate px-3 py-2 text-zinc-600 dark:text-zinc-300 lg:table-cell" title="{{ $assignedNames }}">
-                                {{ $assignedNames !== '' ? $assignedNames : '—' }}
+                            <td class="whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ $ticket->status }}</td>
+                            <td class="whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ $ticket->category?->name ?? '—' }}</td>
+                            <td class="max-w-[14rem] whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300" title="{{ $assignedNames }}">
+                                <span class="block truncate">{{ $assignedNames !== '' ? $assignedNames : '—' }}</span>
                             </td>
-                            <td class="hidden whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300 lg:table-cell">
+                            <td class="whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">
                                 {{ $ticket->created_at?->format('d M Y H:i') }}
                             </td>
+                            @if ($analystListMode)
+                                <td class="whitespace-nowrap px-3 py-2 text-zinc-700 dark:text-zinc-200">
+                                    @if (! empty($ticket->analyses_exists))
+                                        <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Ya</span>
+                                    @else
+                                        <span class="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">Belum</span>
+                                    @endif
+                                </td>
+                            @endif
+                            @if ($responderListMode)
+                                @php
+                                    $phaseRow = $ticket->responderWorkPhase(isset($ticket->response_actions_count) ? (int) $ticket->response_actions_count : null);
+                                @endphp
+                                <td class="whitespace-nowrap px-3 py-2 text-zinc-700 dark:text-zinc-200">
+                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $phaseRow['badge_class'] }}">{{ $phaseRow['label'] }}</span>
+                                </td>
+                            @endif
                             <td class="whitespace-nowrap px-3 py-2 text-right">
-                                <flux:button type="button" size="sm" variant="ghost" wire:click="openTicketDetail('{{ $ticket->public_id }}')">Detail</flux:button>
+                                <div class="flex flex-nowrap items-center justify-end gap-1">
+                                    @can('analyze', $ticket)
+                                        @if ($analystListMode || ! auth()->user()?->shouldHideAnalysisShortcutOnMainTicketList())
+                                            <flux:button type="button" size="sm" variant="primary" href="{{ route('tickets.analysis', $ticket) }}" wire:navigate>
+                                                Analisis
+                                            </flux:button>
+                                        @endif
+                                    @endcan
+                                    @can('respond', $ticket)
+                                        <flux:button type="button" size="sm" variant="primary" href="{{ route('tickets.respond', $ticket) }}" wire:navigate>
+                                            Penanganan
+                                        </flux:button>
+                                    @endcan
+                                    <flux:button type="button" size="sm" variant="ghost" wire:click="openTicketDetail('{{ $ticket->public_id }}')">Detail</flux:button>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-3 py-8 text-center text-zinc-500 dark:text-zinc-400">Tidak ada tiket.</td>
+                            <td colspan="{{ $tableColCount }}" class="px-3 py-8 text-center text-zinc-500 dark:text-zinc-400">Tidak ada tiket.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -236,9 +361,18 @@
                     ->join(', ');
             @endphp
             <div class="space-y-6">
-                <header>
-                    <flux:heading size="xl">{{ $detailTicket->title }}</flux:heading>
-                    <p class="mt-1 font-mono text-sm text-zinc-500 dark:text-zinc-400">No. Tiket: {{ $detailTicket->ticket_number ?? '—' }}</p>
+                <header class="space-y-3">
+                    <div>
+                        <flux:heading size="xl">{{ $detailTicket->title }}</flux:heading>
+                        <p class="mt-1 font-mono text-sm text-zinc-500 dark:text-zinc-400">No. Tiket: {{ $detailTicket->ticket_number ?? '—' }}</p>
+                    </div>
+                    @can('analyze', $detailTicket)
+                        @if ($analystListMode || ! auth()->user()?->shouldHideAnalysisShortcutOnMainTicketList())
+                            <flux:button href="{{ route('tickets.analysis', $detailTicket) }}" variant="primary" size="sm" wire:navigate>
+                                Buka formulir analisis & IOC
+                            </flux:button>
+                        @endif
+                    @endcan
                 </header>
 
                 <flux:card class="space-y-4 p-4 sm:p-5">
@@ -413,6 +547,57 @@
                                 </flux:button>
                             </div>
                         </form>
+                    </flux:card>
+                @endcan
+
+                @can('assignResponderHandoff', $detailTicket)
+                        <flux:card class="space-y-4 border-dashed border-sky-200 p-4 sm:p-5 dark:border-sky-800/50">
+                            <flux:heading size="lg">Handoff ke responder</flux:heading>
+                            <flux:subheading>Setelah analisis tersedia, tugaskan pengguna dengan izin penanganan respons sebagai penanggung jawab utama.</flux:subheading>
+                            <form wire:submit.prevent="assignHandoffResponder" class="space-y-4" wire:key="assign-responder-{{ $detailTicket->public_id }}">
+                                <div class="space-y-2">
+                                    <flux:select
+                                        label="Responder"
+                                        wire:model.live="assignResponderUserId"
+                                        icon="user"
+                                    >
+                                        <option value="">Pilih responder…</option>
+                                        @foreach ($responders as $responderUser)
+                                            <flux:select.option value="{{ $responderUser->id }}">
+                                                {{ $responderUser->name }} — {{ $responderUser->email }}
+                                            </flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                    @error('assignResponderUserId')
+                                        <p class="text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div class="flex justify-end gap-2">
+                                    <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                                        <span wire:loading.remove wire:target="assignHandoffResponder">Tugaskan responder</span>
+                                        <span wire:loading wire:target="assignHandoffResponder">Menyimpan…</span>
+                                    </flux:button>
+                                </div>
+                            </form>
+                        </flux:card>
+                @endcan
+
+                @can('reopenResponseRecording', $detailTicket)
+                    <flux:card class="space-y-4 border-dashed border-violet-200 p-4 sm:p-5 dark:border-violet-900/40">
+                        <flux:heading size="lg">Buka kembali pencatatan tindakan</flux:heading>
+                        <flux:subheading>Tiket berada di fase Resolution (selesai ditangani). Jika responder perlu mencatat tindakan tambahan, kembalikan sub-status ke Response. Responder yang ter-tugaskan akan melihat form catatan di halaman penanganan.</flux:subheading>
+                        <div class="flex flex-wrap justify-end gap-2">
+                            <flux:button
+                                type="button"
+                                variant="primary"
+                                wire:click="reopenResponseRecording"
+                                wire:confirm="Kembalikan tiket ke fase Response agar responder dapat menambah catatan tindakan?"
+                                wire:loading.attr="disabled"
+                            >
+                                <span wire:loading.remove wire:target="reopenResponseRecording">Buka kembali fase respons</span>
+                                <span wire:loading wire:target="reopenResponseRecording">Memproses…</span>
+                            </flux:button>
+                        </div>
                     </flux:card>
                 @endcan
             </div>

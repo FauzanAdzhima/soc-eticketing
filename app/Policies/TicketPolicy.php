@@ -26,8 +26,77 @@ class TicketPolicy
             return true;
         }
 
-        if ($ticket->created_by === $user->id) {
+        if ($ticket->created_by === $user->id && ! $this->isResponderOnlyUser($user)) {
             return true;
+        }
+
+        $assigned = $ticket->assignments()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->exists();
+
+        if (! $assigned) {
+            return false;
+        }
+
+        if ($this->isResponderOnlyUser($user)) {
+            return $this->ticketPassesResponderAssignmentViewGate($ticket);
+        }
+
+        return true;
+    }
+
+    /**
+     * Akses halaman penanganan (responder): tiket sudah dianalisis, sub-status sesuai, dan user lolos aturan view.
+     */
+    public function respond(User $user, Ticket $ticket): bool
+    {
+        if (! $user->can('ticket.respond')) {
+            return false;
+        }
+
+        if ($ticket->isTerminal() || $ticket->status !== Ticket::STATUS_ON_PROGRESS) {
+            return false;
+        }
+
+        if (! $ticket->analyses()->exists()) {
+            return false;
+        }
+
+        if (! in_array($ticket->sub_status, [
+            Ticket::SUB_STATUS_ANALYSIS,
+            Ticket::SUB_STATUS_RESPONSE,
+            Ticket::SUB_STATUS_RESOLUTION,
+        ], true)) {
+            return false;
+        }
+
+        return $this->view($user, $ticket);
+    }
+
+    /**
+     * Memulai fase Response dari Analysis (tombol "Tangani Tiket" di halaman responder).
+     */
+    public function beginResponseHandling(User $user, Ticket $ticket): bool
+    {
+        if ($ticket->isTerminal() || $ticket->status !== Ticket::STATUS_ON_PROGRESS) {
+            return false;
+        }
+
+        if ($ticket->report_status !== Ticket::REPORT_STATUS_VERIFIED) {
+            return false;
+        }
+
+        if (! $user->can('ticket.respond')) {
+            return false;
+        }
+
+        if (! $ticket->analyses()->exists()) {
+            return false;
+        }
+
+        if ($ticket->sub_status !== Ticket::SUB_STATUS_ANALYSIS) {
+            return false;
         }
 
         return $ticket->assignments()
@@ -36,7 +105,112 @@ class TicketPolicy
             ->exists();
     }
 
+    /**
+     * Menandai penanganan respons selesai (promosi ke Resolution).
+     */
+    public function markResponseResolved(User $user, Ticket $ticket): bool
+    {
+        if ($ticket->sub_status !== Ticket::SUB_STATUS_RESPONSE) {
+            return false;
+        }
+
+        if (! $ticket->responseActions()->exists()) {
+            return false;
+        }
+
+        if ($ticket->isTerminal() || $ticket->status !== Ticket::STATUS_ON_PROGRESS) {
+            return false;
+        }
+
+        if (! $user->can('ticket.respond')) {
+            return false;
+        }
+
+        if (! $ticket->analyses()->exists()) {
+            return false;
+        }
+
+        return $ticket->assignments()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->exists();
+    }
+
+    private function isResponderOnlyUser(User $user): bool
+    {
+        return $user->can('ticket.respond')
+            && ! $user->can('ticket.analyze')
+            && ! $user->hasRole('pic')
+            && ! $user->can('ticket.view_all');
+    }
+
+    /**
+     * Responder murni: hanya tiket yang relevan untuk alur respons (setelah analisis, sub-status tidak lagi Triage).
+     */
+    private function ticketPassesResponderAssignmentViewGate(Ticket $ticket): bool
+    {
+        if (! $ticket->analyses()->exists()) {
+            return false;
+        }
+
+        return in_array($ticket->sub_status, [
+            Ticket::SUB_STATUS_ANALYSIS,
+            Ticket::SUB_STATUS_RESPONSE,
+            Ticket::SUB_STATUS_RESOLUTION,
+        ], true);
+    }
+
     public function updateStatus(User $user, Ticket $ticket): bool
+    {
+        if ($ticket->isTerminal()) {
+            return false;
+        }
+
+        if ($ticket->status !== Ticket::STATUS_ON_PROGRESS) {
+            return false;
+        }
+
+        if (! $user->can('ticket.update_status')) {
+            return false;
+        }
+
+        if (! $user->can('ticket.analyze') && ! $user->can('ticket.respond')) {
+            return false;
+        }
+
+        return $ticket->assignments()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->exists();
+    }
+
+    /**
+     * Mencatat analisis insiden + IOC: pengguna ter-assign (primary/contributor) dengan ticket.analyze.
+     */
+    public function analyze(User $user, Ticket $ticket): bool
+    {
+        if ($ticket->isTerminal()) {
+            return false;
+        }
+
+        if ($ticket->status !== Ticket::STATUS_ON_PROGRESS) {
+            return false;
+        }
+
+        if (! $user->can('ticket.analyze')) {
+            return false;
+        }
+
+        return $ticket->assignments()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->exists();
+    }
+
+    /**
+     * Mencatat tindakan respons (mitigasi / eradikasi / recovery): hanya responder ter-assign aktif.
+     */
+    public function recordResponseAction(User $user, Ticket $ticket): bool
     {
         if ($ticket->isTerminal()) {
             return false;
@@ -50,10 +224,42 @@ class TicketPolicy
             return false;
         }
 
+        if (! $ticket->analyses()->exists()) {
+            return false;
+        }
+
+        if ($ticket->sub_status !== Ticket::SUB_STATUS_RESPONSE) {
+            return false;
+        }
+
         return $ticket->assignments()
             ->where('user_id', $user->id)
             ->where('is_active', true)
             ->exists();
+    }
+
+    /**
+     * Koordinator membuka kembali fase Response dari Resolution agar responder dapat mencatat tindakan tambahan.
+     */
+    public function reopenResponseRecording(User $user, Ticket $ticket): bool
+    {
+        if (! $user->hasRole('koordinator')) {
+            return false;
+        }
+
+        if ($ticket->isTerminal() || $ticket->status !== Ticket::STATUS_ON_PROGRESS) {
+            return false;
+        }
+
+        if ($ticket->report_status !== Ticket::REPORT_STATUS_VERIFIED) {
+            return false;
+        }
+
+        if ($ticket->sub_status !== Ticket::SUB_STATUS_RESOLUTION) {
+            return false;
+        }
+
+        return $ticket->analyses()->exists();
     }
 
     public function close(User $user, Ticket $ticket): bool
@@ -103,10 +309,44 @@ class TicketPolicy
                 && $ticket->status === Ticket::STATUS_OPEN;
         }
 
-        return $ticket->assignments()
-            ->where('user_id', $user->id)
-            ->where('is_active', true)
-            ->exists();
+        // Analis/responder ter-assign tidak memegang hak assign; penugasan ulang lewat koordinator / alur PIC saat Open.
+        return false;
+    }
+
+    /**
+     * Handoff utama ke responder setelah ada analisis (PIC / koordinator), saat tiket masih On Progress.
+     */
+    public function assignResponderHandoff(User $user, Ticket $ticket): bool
+    {
+        if ($ticket->isTerminal()) {
+            return false;
+        }
+
+        if ($ticket->status !== Ticket::STATUS_ON_PROGRESS) {
+            return false;
+        }
+
+        if ($ticket->report_status !== Ticket::REPORT_STATUS_VERIFIED) {
+            return false;
+        }
+
+        if (! $ticket->analyses()->exists()) {
+            return false;
+        }
+
+        if (! in_array($ticket->sub_status, [
+            Ticket::SUB_STATUS_ANALYSIS,
+            Ticket::SUB_STATUS_RESPONSE,
+            Ticket::SUB_STATUS_RESOLUTION,
+        ], true)) {
+            return false;
+        }
+
+        if ($user->hasRole('koordinator')) {
+            return true;
+        }
+
+        return $user->hasRole('pic');
     }
 
     /**
@@ -118,6 +358,8 @@ class TicketPolicy
             return false;
         }
 
-        return $this->verifyReport($user, $ticket) || $this->assign($user, $ticket);
+        return $this->verifyReport($user, $ticket)
+            || $this->assign($user, $ticket)
+            || $this->assignResponderHandoff($user, $ticket);
     }
 }

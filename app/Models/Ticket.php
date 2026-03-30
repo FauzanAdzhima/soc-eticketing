@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Events\TicketAssigned;
 use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -73,6 +74,21 @@ class Ticket extends Model
         return $this->hasMany(TicketEvidence::class);
     }
 
+    public function analyses()
+    {
+        return $this->hasMany(IncidentAnalysis::class);
+    }
+
+    public function responseActions()
+    {
+        return $this->hasMany(IncidentResponseAction::class);
+    }
+
+    public function logs()
+    {
+        return $this->hasMany(TicketLog::class);
+    }
+
     public const STATUS_AWAITING_VERIFICATION = 'Awaiting Verification';
 
     public const STATUS_OPEN = 'Open';
@@ -128,6 +144,52 @@ class Ticket extends Model
     public function isTerminal(): bool
     {
         return $this->isClosed() || $this->isReportRejected();
+    }
+
+    /**
+     * Fase kerja responder untuk badge/filter (butuh withCount responseActions pada query daftar bisa).
+     *
+     * @return array{slug: string, label: string, badge_class: string}
+     */
+    public function responderWorkPhase(?int $responseActionsCount = null): array
+    {
+        if ($this->sub_status === self::SUB_STATUS_RESOLUTION) {
+            return [
+                'slug' => 'resolved',
+                'label' => 'Selesai ditangani',
+                'badge_class' => 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+            ];
+        }
+
+        if ($this->sub_status === self::SUB_STATUS_RESPONSE) {
+            $count = $responseActionsCount;
+            if ($count === null && isset($this->response_actions_count)) {
+                $count = (int) $this->response_actions_count;
+            }
+            if ($count === null) {
+                $count = (int) $this->responseActions()->count();
+            }
+
+            if ($count < 1) {
+                return [
+                    'slug' => 'ready_for_response',
+                    'label' => 'Siap ditangani',
+                    'badge_class' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+                ];
+            }
+
+            return [
+                'slug' => 'in_progress',
+                'label' => 'Ditangani',
+                'badge_class' => 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200',
+            ];
+        }
+
+        return [
+            'slug' => 'other',
+            'label' => $this->sub_status ?? '—',
+            'badge_class' => 'bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',
+        ];
     }
 
     /**
@@ -205,8 +267,13 @@ class Ticket extends Model
         }
 
         if (! $isSystem) {
-            if (! $user->hasAnyRole(['analis', 'responder'])) {
-                throw new Exception('Peran tidak diizinkan untuk memperbarui sub-status.');
+            $gate = Gate::forUser($user);
+            if (! $gate->allows('ticket.update_status')) {
+                throw new Exception('Anda tidak memiliki izin untuk memperbarui sub-status.');
+            }
+
+            if (! $gate->allows('ticket.analyze') && ! $gate->allows('ticket.respond')) {
+                throw new Exception('Anda tidak memiliki izin analisis atau respons untuk memperbarui sub-status.');
             }
 
             $assigned = $this->assignments()
@@ -233,6 +300,23 @@ class Ticket extends Model
                 'to' => $newSubStatus,
             ]),
         ]);
+    }
+
+    /**
+     * Koordinator: kembalikan sub-status ke Response setelah Resolution agar responder dapat mencatat tindakan lagi.
+     * Izin reopenResponseRecording harus sudah dicek pemanggil.
+     */
+    public function reopenResponsePhaseForAdditionalActions(User $coordinator): void
+    {
+        if ($this->status !== self::STATUS_ON_PROGRESS) {
+            throw new Exception('Tiket harus On Progress.');
+        }
+
+        if ($this->sub_status !== self::SUB_STATUS_RESOLUTION) {
+            throw new Exception('Tiket tidak dalam fase Resolution.');
+        }
+
+        $this->updateSubStatus(self::SUB_STATUS_RESPONSE, $coordinator, true);
     }
 
     /**
@@ -367,7 +451,7 @@ class Ticket extends Model
     private function applyHandoffToAnalystAfterPrimaryAssign(int $assigneeUserId): void
     {
         $assignee = User::query()->find($assigneeUserId);
-        if ($assignee === null || ! $assignee->hasAnyRole(['analis', 'responder'])) {
+        if ($assignee === null || (! $assignee->can('ticket.analyze') && ! $assignee->can('ticket.respond'))) {
             return;
         }
 

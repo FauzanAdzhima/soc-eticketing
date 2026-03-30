@@ -56,4 +56,35 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Organization::class);
     }
+
+    /**
+     * Analis murni: punya antrean penugasan saja di navigasi (tanpa menu Daftar Tiket utama PIC/koordinator).
+     */
+    public function seesOnlyAnalystTicketListInNavigation(): bool
+    {
+        return $this->can('ticket.analyze')
+            && ! $this->can('ticket.respond')
+            && ! $this->hasRole('pic')
+            && ! $this->can('ticket.view_all');
+    }
+
+    /**
+     * Responder murni: antrean penanganan saja di navigasi (tanpa Daftar Tiket PIC/koordinator polos).
+     */
+    public function seesOnlyResponderTicketListInNavigation(): bool
+    {
+        return $this->can('ticket.respond')
+            && ! $this->can('ticket.analyze')
+            && ! $this->hasRole('pic')
+            && ! $this->can('ticket.view_all');
+    }
+
+    /**
+     * Di tabel "Daftar Tiket" (bukan scope analis), sembunyikan tombol Analisis bila user juga punya alur analis/responder
+     * lewat menu "Analisis Tiket" (menghindari duplikasi untuk kombinasi PIC + analis/responder).
+     */
+    public function shouldHideAnalysisShortcutOnMainTicketList(): bool
+    {
+        return $this->hasRole('pic') && $this->can('ticket.analyze');
+    }
 }

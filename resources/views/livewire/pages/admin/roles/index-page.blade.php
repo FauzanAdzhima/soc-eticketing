@@ -25,13 +25,13 @@
         @endcan
     </div>
 
-    <flux:card class="p-4 sm:p-5">
+    <flux:card class="min-w-0 p-4 sm:p-5">
         <div class="mb-4">
             <flux:input wire:model.live.debounce.300ms="search" type="search" placeholder="Cari nama atau deskripsi…" />
         </div>
 
-        <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
-            <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
+        <div class="max-w-full overflow-x-auto overscroll-x-contain rounded-lg border border-zinc-200 dark:border-zinc-700">
+            <table class="w-full min-w-max divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
                 <thead class="bg-zinc-50 dark:bg-zinc-800/80">
                     <tr>
                         <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">
@@ -42,11 +42,11 @@
                                 @endif
                             </button>
                         </th>
-                        <th class="hidden px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200 sm:table-cell">Label</th>
-                        <th class="hidden px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200 md:table-cell">Deskripsi</th>
+                        <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Label</th>
+                        <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Deskripsi</th>
                         <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Pengguna</th>
                         <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Izin</th>
-                        <th class="hidden px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200 lg:table-cell">
+                        <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">
                             <button type="button" wire:click="sortByColumn('created_at')" class="inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-white">
                                 Dibuat
                                 @if ($sortBy === 'created_at')
@@ -61,13 +61,13 @@
                     @forelse ($roles as $role)
                         <tr wire:key="role-{{ $role->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                             <td class="whitespace-nowrap px-3 py-2 font-mono text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $role->name }}</td>
-                            <td class="hidden max-w-xs px-3 py-2 text-zinc-700 dark:text-zinc-300 sm:table-cell">{{ role_label($role->name) }}</td>
-                            <td class="hidden max-w-xs truncate px-3 py-2 text-zinc-600 dark:text-zinc-300 md:table-cell">{{ $role->desc ?: '—' }}</td>
+                            <td class="max-w-xs whitespace-nowrap px-3 py-2 text-zinc-700 dark:text-zinc-300"><span class="block truncate">{{ role_label($role->name) }}</span></td>
+                            <td class="max-w-xs whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300"><span class="block truncate">{{ $role->desc ?: '—' }}</span></td>
                             <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ $role->users_count }}</td>
                             <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ $role->permissions_count }}</td>
-                            <td class="hidden whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300 lg:table-cell">{{ $role->created_at?->format('d M Y') }}</td>
+                            <td class="whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ $role->created_at?->format('d M Y') }}</td>
                             <td class="whitespace-nowrap px-3 py-2 text-right">
-                                <div class="inline-flex flex-wrap justify-end gap-1">
+                                <div class="inline-flex flex-nowrap justify-end gap-1">
                                     @can('role.update')
                                         <flux:button size="sm" variant="ghost" wire:click="openEditModal({{ $role->id }})">Ubah</flux:button>
                                     @endcan

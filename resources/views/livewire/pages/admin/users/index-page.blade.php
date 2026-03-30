@@ -18,13 +18,13 @@
         @endcan
     </div>
 
-    <flux:card class="p-4 sm:p-5">
+    <flux:card class="min-w-0 p-4 sm:p-5">
         <div class="mb-4">
             <flux:input wire:model.live.debounce.300ms="search" type="search" placeholder="Cari nama atau email…" />
         </div>
 
-        <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
-            <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
+        <div class="max-w-full overflow-x-auto overscroll-x-contain rounded-lg border border-zinc-200 dark:border-zinc-700">
+            <table class="w-full min-w-max divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
                 <thead class="bg-zinc-50 dark:bg-zinc-800/80">
                     <tr>
                         <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">
@@ -43,9 +43,9 @@
                                 @endif
                             </button>
                         </th>
-                        <th class="hidden px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200 md:table-cell">Organisasi</th>
-                        <th class="hidden px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200 lg:table-cell">Role</th>
-                        <th class="hidden px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200 lg:table-cell">
+                        <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Organisasi</th>
+                        <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Role</th>
+                        <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">
                             <button type="button" wire:click="sortByColumn('created_at')" class="inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-white">
                                 Dibuat
                                 @if ($sortBy === 'created_at')
@@ -61,15 +61,15 @@
                         <tr wire:key="user-{{ $user->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                             <td class="whitespace-nowrap px-3 py-2 font-medium text-zinc-900 dark:text-zinc-100">{{ $user->name }}</td>
                             <td class="whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ $user->email }}</td>
-                            <td class="hidden px-3 py-2 text-zinc-600 dark:text-zinc-300 md:table-cell">{{ $user->organization?->name ?? '—' }}</td>
-                            <td class="hidden max-w-xs truncate px-3 py-2 text-zinc-600 dark:text-zinc-300 lg:table-cell">
-                                {{ $user->roles->map(fn ($r) => role_label($r->name))->filter()->join(', ') ?: '—' }}
+                            <td class="whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ $user->organization?->name ?? '—' }}</td>
+                            <td class="max-w-xs whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">
+                                <span class="block truncate">{{ $user->roles->map(fn ($r) => role_label($r->name))->filter()->join(', ') ?: '—' }}</span>
                             </td>
-                            <td class="hidden whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300 lg:table-cell">
+                            <td class="whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">
                                 {{ $user->created_at?->format('d M Y') }}
                             </td>
                             <td class="whitespace-nowrap px-3 py-2 text-right">
-                                <div class="inline-flex flex-wrap justify-end gap-1">
+                                <div class="inline-flex flex-nowrap justify-end gap-1">
                                     @can('user.update')
                                         <flux:button size="sm" variant="ghost" wire:click="openEditModal({{ $user->id }})">Ubah</flux:button>
                                     @endcan

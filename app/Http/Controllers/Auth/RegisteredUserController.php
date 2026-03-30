@@ -54,6 +54,10 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
+        $request->session()->regenerate();
+
+        $request->session()->put('show_dashboard_welcome_once', true);
+
         return redirect(route('dashboard', absolute: false));
     }
 }

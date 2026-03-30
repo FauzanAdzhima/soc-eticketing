@@ -39,6 +39,7 @@ class RoleSeeder extends Seeder
             'ticket.view',
             'ticket.view_all',
             'ticket.assign',
+            'ticket.analyze',
             'ticket.respond',
             'ticket.update_status',
             'ticket.close',
@@ -68,7 +69,7 @@ class RoleSeeder extends Seeder
                 'desc' => 'Analis Insiden, melakukan analisis insiden',
                 'permissions' => [
                     'ticket.view',
-                    'ticket.respond',
+                    'ticket.analyze',
                     'ticket.update_status',
                 ],
             ],

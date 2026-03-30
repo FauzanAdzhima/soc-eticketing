@@ -9,6 +9,8 @@ use App\Livewire\Pages\Admin\Users\IndexPage as AdminUsersIndexPage;
 use App\Livewire\Pages\DashboardPage;
 use App\Livewire\Pages\ProfilePage;
 use App\Livewire\Pages\Tickets\IndexPage as TicketsIndexPage;
+use App\Livewire\Pages\Tickets\TicketAnalysisPage;
+use App\Livewire\Pages\Tickets\TicketRespondPage;
 use App\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -39,6 +41,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/tickets', TicketsIndexPage::class)
         ->middleware('can:ticket.view')
         ->name('tickets.index');
+    Route::redirect('/tickets/assigned', '/tickets?scope=analyst')
+        ->middleware(['can:ticket.view']);
+    Route::get('/tickets/{ticket}/analysis', TicketAnalysisPage::class)
+        ->middleware(['can:analyze,ticket'])
+        ->name('tickets.analysis');
+    Route::get('/tickets/{ticket}/respond', TicketRespondPage::class)
+        ->middleware(['can:respond,ticket'])
+        ->name('tickets.respond');
     Route::get('/tickets/evidence/{evidence}', [TicketEvidenceController::class, 'show'])
         ->middleware('can:ticket.view')
         ->name('tickets.evidence.show');

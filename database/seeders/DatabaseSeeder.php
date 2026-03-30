@@ -17,7 +17,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             OrganizationSeeder::class,
             RoleSeeder::class,
-            IncidentCategorySeeder::class
+            IncidentCategorySeeder::class,
+            IncidentIocTypeSeeder::class,
+            DemoPendingTicketsSeeder::class,
             // UserSeeder::class,
         ]);
 
@@ -43,6 +45,13 @@ class DatabaseSeeder extends Seeder
             'organization_id' => $organizations->first()->id,
         ]);
         $analis->assignRole('analis');
+
+        $picAnalis = User::factory()->create([
+            'name' => 'PIC + Analis',
+            'email' => 'pic-analis@test.com',
+            'organization_id' => $organizations->first()->id,
+        ]);
+        $picAnalis->assignRole(['pic', 'analis']);
 
         $responder = User::factory()->create([
             'name' => 'Responder',

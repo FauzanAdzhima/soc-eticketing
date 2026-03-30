@@ -8,12 +8,13 @@ class TicketLog extends Model
 {
     protected $fillable = [
         'ticket_id',
-        // 'user_id',
+        'user_id',
         'action',
-        // 'data',
+        'data',
     ];
 
-    // protected $casts = [
-    //     'data' => 'array',
-    // ];
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

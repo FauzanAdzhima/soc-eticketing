@@ -5,8 +5,10 @@ namespace App\Livewire\Pages;
 use App\Models\IncidentCategory;
 use App\Models\Organization;
 use App\Models\Role;
+use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -21,8 +23,16 @@ class DashboardPage extends Component
 
     public int $opdTopLimit = 5;
 
+    public ?int $dashboardAssignmentPollBaseline = null;
+
+    public bool $showDashboardNewAssignmentBanner = false;
+
+    /** Toast selamat datang: sekali setelah login / registrasi (lihat AuthenticatedSessionController & RegisteredUserController). */
+    public bool $showWelcomeToast = false;
+
     public function mount(): void
     {
+        $this->showWelcomeToast = (bool) session()->pull('show_dashboard_welcome_once', false);
         $this->normalizeOpdTopLimit();
         $this->syncActiveChart();
     }
@@ -75,6 +85,36 @@ class DashboardPage extends Component
         if (! in_array($this->opdTopLimit, self::OPD_TOP_LIMIT_OPTIONS, true)) {
             $this->opdTopLimit = 5;
         }
+    }
+
+    /**
+     * Polling ringkas untuk analis: deteksi jumlah tiket dengan penugasan aktif bertambah.
+     */
+    public function refreshDashboardAssignmentSignal(): void
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->can('ticket.analyze')) {
+            return;
+        }
+
+        $current = (clone $this->analystDashboardTicketQuery($user))->count();
+
+        if ($this->dashboardAssignmentPollBaseline === null) {
+            $this->dashboardAssignmentPollBaseline = $current;
+
+            return;
+        }
+
+        if ($current > $this->dashboardAssignmentPollBaseline) {
+            $this->showDashboardNewAssignmentBanner = true;
+        }
+
+        $this->dashboardAssignmentPollBaseline = $current;
+    }
+
+    public function dismissDashboardNewAssignmentBanner(): void
+    {
+        $this->showDashboardNewAssignmentBanner = false;
     }
 
     /**
@@ -163,6 +203,60 @@ class DashboardPage extends Component
             ? count($chartPayload['labels'])
             : null;
 
+        $showAnalystTicketStatsCard = false;
+        $analystTicketAssignedCount = null;
+        $analystTicketAnalyzedCount = null;
+        $analystTicketPendingAnalysisCount = null;
+        if ($user instanceof User && $user->can('ticket.analyze')) {
+            $showAnalystTicketStatsCard = true;
+            $baseAnalyst = $this->analystDashboardTicketQuery($user);
+            $analystTicketAssignedCount = (clone $baseAnalyst)->count();
+            $analystTicketAnalyzedCount = (clone $baseAnalyst)
+                ->whereHas('analyses', function (Builder $q) use ($user): void {
+                    $q->where('performed_by', $user->id);
+                })
+                ->count();
+            $analystTicketPendingAnalysisCount = (clone $baseAnalyst)
+                ->whereDoesntHave('analyses', function (Builder $q) use ($user): void {
+                    $q->where('performed_by', $user->id);
+                })
+                ->count();
+        }
+
+        $showPicTicketStatsCard = $user instanceof User && $user->hasRole('pic');
+        $picTicketTotalCount = null;
+        $picTicketVerifiedCount = null;
+        $picTicketRejectedCount = null;
+        $picTicketOnProgressCount = null;
+        if ($showPicTicketStatsCard) {
+            $picTicketTotalCount = Ticket::query()->count();
+            $picTicketVerifiedCount = Ticket::query()
+                ->where('report_status', Ticket::REPORT_STATUS_VERIFIED)
+                ->count();
+            $picTicketRejectedCount = Ticket::query()
+                ->where('report_status', Ticket::REPORT_STATUS_REJECTED)
+                ->count();
+            $picTicketOnProgressCount = Ticket::query()
+                ->where('status', Ticket::STATUS_ON_PROGRESS)
+                ->count();
+        }
+
+        $showResponderTicketStatsCard = false;
+        $responderTicketAssignedCount = null;
+        $responderTicketCompletedCount = null;
+        $responderTicketPendingCount = null;
+        if ($user instanceof User && $user->can('ticket.respond')) {
+            $showResponderTicketStatsCard = true;
+            $baseResponder = $this->responderDashboardTicketQuery($user);
+            $responderTicketAssignedCount = (clone $baseResponder)->count();
+            $responderTicketCompletedCount = (clone $baseResponder)
+                ->where('sub_status', Ticket::SUB_STATUS_RESOLUTION)
+                ->count();
+            $responderTicketPendingCount = (clone $baseResponder)
+                ->whereIn('sub_status', [Ticket::SUB_STATUS_ANALYSIS, Ticket::SUB_STATUS_RESPONSE])
+                ->count();
+        }
+
         return view('livewire.pages.dashboard-page', [
             'stats' => $stats,
             'showChartSection' => $showChartSection,
@@ -172,6 +266,55 @@ class DashboardPage extends Component
             'totalOrganizations' => $totalOrganizations,
             'opdChartRowCount' => $opdChartRowCount,
             'opdTopLimitOptions' => self::OPD_TOP_LIMIT_OPTIONS,
+            'showAnalystTicketStatsCard' => $showAnalystTicketStatsCard,
+            'analystTicketAssignedCount' => $analystTicketAssignedCount,
+            'analystTicketAnalyzedCount' => $analystTicketAnalyzedCount,
+            'analystTicketPendingAnalysisCount' => $analystTicketPendingAnalysisCount,
+            'showPicTicketStatsCard' => $showPicTicketStatsCard,
+            'picTicketTotalCount' => $picTicketTotalCount,
+            'picTicketVerifiedCount' => $picTicketVerifiedCount,
+            'picTicketRejectedCount' => $picTicketRejectedCount,
+            'picTicketOnProgressCount' => $picTicketOnProgressCount,
+            'showResponderTicketStatsCard' => $showResponderTicketStatsCard,
+            'responderTicketAssignedCount' => $responderTicketAssignedCount,
+            'responderTicketCompletedCount' => $responderTicketCompletedCount,
+            'responderTicketPendingCount' => $responderTicketPendingCount,
         ]);
+    }
+
+    /**
+     * Tiket analis yang masih relevan untuk kerja (bukan Closed / laporan ditolak), dengan penugasan aktif ke user.
+     *
+     * @return Builder<Ticket>
+     */
+    private function analystDashboardTicketQuery(User $user): Builder
+    {
+        return Ticket::query()
+            ->where('status', '!=', Ticket::STATUS_CLOSED)
+            ->where('status', '!=', Ticket::STATUS_REPORT_REJECTED)
+            ->where('report_status', '!=', Ticket::REPORT_STATUS_REJECTED)
+            ->whereHas('assignments', function (Builder $q) use ($user): void {
+                $q->where('user_id', $user->id)->where('is_active', true);
+            });
+    }
+
+    /**
+     * Selaras dengan antrean responder di daftar tiket: On Progress, penugasan aktif, sudah ada analisis, fase penanganan.
+     *
+     * @return Builder<Ticket>
+     */
+    private function responderDashboardTicketQuery(User $user): Builder
+    {
+        return Ticket::query()
+            ->where('status', Ticket::STATUS_ON_PROGRESS)
+            ->whereHas('assignments', function (Builder $q) use ($user): void {
+                $q->where('user_id', $user->id)->where('is_active', true);
+            })
+            ->whereHas('analyses')
+            ->whereIn('sub_status', [
+                Ticket::SUB_STATUS_ANALYSIS,
+                Ticket::SUB_STATUS_RESPONSE,
+                Ticket::SUB_STATUS_RESOLUTION,
+            ]);
     }
 }

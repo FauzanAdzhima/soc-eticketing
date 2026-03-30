@@ -16,6 +16,8 @@
             '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="h-4 w-4"><path d="M3.75 20.25h16.5M6 20.25v-12l6-3 6 3v12M9 9.75h.01M12 9.75h.01M15 9.75h.01M9 13.5h.01M12 13.5h.01M15 13.5h.01M11.25 20.25v-3h1.5v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         'exclamation-triangle' =>
             '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="h-4 w-4"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.72 3h16.92a2 2 0 0 0 1.72-3l-8.47-14.14a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 9v4.5M12 17.25h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+        'bolt' =>
+            '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="h-4 w-4"><path d="m5.25 13.5 6-9h4.5l-2.25 6h3.75l-8.25 9 2.25-6h-6Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
     ];
 @endphp
 
@@ -29,23 +31,17 @@
 
     <nav class="flex-1 space-y-1 overflow-y-auto px-2 pb-4">
         @forelse ($menus as $index => $menu)
-            @if ($index > 0)
-                @php
-                    $prevMenu = $menus[$index - 1];
-                    $showSectionDivider = blank($prevMenu['permission'] ?? null) && filled($menu['permission'] ?? null);
-                @endphp
-                @if ($showSectionDivider)
-                    <div role="separator" aria-hidden="true"
-                        class="my-2 border-t border-zinc-200 dark:border-zinc-700"></div>
-                @endif
+            @if ($index > 0 && ($menu['group'] ?? 'core') !== ($menus[$index - 1]['group'] ?? 'core'))
+                <div role="separator" aria-hidden="true"
+                    class="my-2 border-t border-zinc-200 dark:border-zinc-700"></div>
             @endif
             @if (blank($menu['permission']))
-                <a href="{{ route($menu['route']) }}"
+                <a href="{{ route($menu['route'], $menu['route_query'] ?? []) }}"
                     x-data="{ hover: false }" @mouseenter="hover = true" @mouseleave="hover = false"
                     @class([
                         'relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition',
-                        'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900' => $this->isActive($menu['route']),
-                        'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800' => !$this->isActive($menu['route']),
+                        'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900' => $this->isActiveForMenu($menu),
+                        'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800' => !$this->isActiveForMenu($menu),
                     ])>
                     <span class="flex w-8 justify-center text-zinc-400">{!! $iconSvgs[$menu['icon']] ?? strtoupper(substr($menu['label'], 0, 1)) !!}</span>
                     <span class="truncate" x-show="!sidebarCollapsed" x-cloak>{{ $menu['label'] }}</span>
@@ -56,12 +52,12 @@
                 </a>
             @else
                 @can($menu['permission'])
-                    <a href="{{ route($menu['route']) }}"
+                    <a href="{{ route($menu['route'], $menu['route_query'] ?? []) }}"
                         x-data="{ hover: false }" @mouseenter="hover = true" @mouseleave="hover = false"
                         @class([
                             'relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition',
-                            'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900' => $this->isActive($menu['route']),
-                            'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800' => !$this->isActive($menu['route']),
+                            'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900' => $this->isActiveForMenu($menu),
+                            'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800' => !$this->isActiveForMenu($menu),
                         ])>
                         <span class="flex w-8 justify-center text-zinc-400">{!! $iconSvgs[$menu['icon']] ?? strtoupper(substr($menu['label'], 0, 1)) !!}</span>
                         <span class="truncate" x-show="!sidebarCollapsed" x-cloak>{{ $menu['label'] }}</span>

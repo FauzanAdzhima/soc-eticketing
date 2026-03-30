@@ -11,6 +11,7 @@ use App\Services\TicketService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -20,6 +21,17 @@ class IndexPage extends Component
 {
     use WithFileUploads;
     use WithPagination;
+
+    #[Url(as: 'scope')]
+    public ?string $scope = null;
+
+    /** @var 'all'|'ready_for_response'|'in_progress'|'resolved' */
+    #[Url(as: 'rf')]
+    public string $responderFilterStatus = 'all';
+
+    /** @var 'all'|'Low'|'Medium'|'High'|'Critical' */
+    #[Url(as: 'rsev')]
+    public string $responderFilterSeverity = 'all';
 
     public bool $isOfficialEmployee = false;
 
@@ -54,9 +66,20 @@ class IndexPage extends Component
     /** Dipilih dari select HTML (string id user); di-cast ke int saat assign */
     public ?string $assignAnalystUserId = null;
 
+    public ?string $assignResponderUserId = null;
+
     public string $rejectReportReason = '';
 
     public bool $showRejectReportPanel = false;
+
+    /** Baseline jumlah tiket dengan penugasan aktif ke user (mode analis), untuk deteksi penugasan baru saat polling. */
+    public ?int $analystAssignmentPollBaseline = null;
+
+    public bool $showNewAssignmentBanner = false;
+
+    public ?int $responderAssignmentPollBaseline = null;
+
+    public bool $showResponderNewAssignmentBanner = false;
 
     public function mount(): void
     {
@@ -72,9 +95,88 @@ class IndexPage extends Component
                 $this->authorize('view', $ticket);
                 $this->detailTicketPublicId = $ticket->public_id;
                 $this->syncAssignAnalystUserIdFromTicket($ticket);
+                $this->syncAssignResponderUserIdFromTicket($ticket);
                 $this->modal('ticket-detail-modal')->show();
             }
         }
+    }
+
+    /**
+     * Dipanggil dari wire:poll di mode analis: bandingkan jumlah penugasan aktif; jika naik, tampilkan banner.
+     */
+    public function refreshAssignmentSignal(): void
+    {
+        if (! $this->isAnalystListMode()) {
+            return;
+        }
+
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->can('ticket.analyze')) {
+            return;
+        }
+
+        $current = Ticket::query()
+            ->whereHas('assignments', function (Builder $q) use ($user): void {
+                $q->where('user_id', $user->id)->where('is_active', true);
+            })
+            ->count();
+
+        if ($this->analystAssignmentPollBaseline === null) {
+            $this->analystAssignmentPollBaseline = $current;
+
+            return;
+        }
+
+        if ($current > $this->analystAssignmentPollBaseline) {
+            $this->showNewAssignmentBanner = true;
+        }
+
+        $this->analystAssignmentPollBaseline = $current;
+    }
+
+    public function dismissNewAssignmentBanner(): void
+    {
+        $this->showNewAssignmentBanner = false;
+    }
+
+    /**
+     * Dipanggil dari wire:poll di mode responder: bandingkan jumlah penugasan aktif pada tiket siap penanganan.
+     */
+    public function refreshResponderAssignmentSignal(): void
+    {
+        if (! $this->isResponderListMode()) {
+            return;
+        }
+
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->can('ticket.respond')) {
+            return;
+        }
+
+        $current = Ticket::query()
+            ->whereHas('assignments', function (Builder $q) use ($user): void {
+                $q->where('user_id', $user->id)->where('is_active', true);
+            })
+            ->whereHas('analyses')
+            ->whereIn('sub_status', $this->responderQueueSubStatuses())
+            ->count();
+
+        if ($this->responderAssignmentPollBaseline === null) {
+            $this->responderAssignmentPollBaseline = $current;
+
+            return;
+        }
+
+        if ($current > $this->responderAssignmentPollBaseline) {
+            $this->showResponderNewAssignmentBanner = true;
+        }
+
+        $this->responderAssignmentPollBaseline = $current;
+    }
+
+    public function dismissResponderNewAssignmentBanner(): void
+    {
+        $this->showResponderNewAssignmentBanner = false;
     }
 
     public function openCreateModal(): void
@@ -115,6 +217,7 @@ class IndexPage extends Component
         $this->authorize('view', $ticket);
         $this->detailTicketPublicId = $publicId;
         $this->syncAssignAnalystUserIdFromTicket($ticket);
+        $this->syncAssignResponderUserIdFromTicket($ticket);
         $this->rejectReportReason = '';
         $this->showRejectReportPanel = false;
         $this->resetValidation();
@@ -126,6 +229,7 @@ class IndexPage extends Component
         $this->modal('ticket-detail-modal')->close();
         $this->detailTicketPublicId = null;
         $this->assignAnalystUserId = null;
+        $this->assignResponderUserId = null;
         $this->rejectReportReason = '';
         $this->showRejectReportPanel = false;
     }
@@ -233,6 +337,101 @@ class IndexPage extends Component
         session()->flash('toast_success', 'Tiket berhasil ditugaskan ke '.$target->name.'.');
         $this->assignAnalystUserId = null;
         $this->resetValidation();
+        $fresh = $ticket->fresh();
+        if ($fresh !== null) {
+            $this->syncAssignAnalystUserIdFromTicket($fresh);
+            $this->syncAssignResponderUserIdFromTicket($fresh);
+        }
+    }
+
+    /**
+     * Handoff penugasan utama ke pengguna dengan izin ticket.respond (koordinator / PIC sesuai kebijakan assign).
+     */
+    public function assignHandoffResponder(): void
+    {
+        $ticket = Ticket::query()
+            ->where('public_id', $this->detailTicketPublicId)
+            ->firstOrFail();
+
+        $this->authorize('assignResponderHandoff', $ticket);
+
+        $this->validate([
+            'assignResponderUserId' => ['required', 'integer', 'exists:users,id'],
+        ], [
+            'assignResponderUserId.required' => 'Pilih responder terlebih dahulu.',
+        ]);
+
+        $target = User::query()->findOrFail((int) $this->assignResponderUserId);
+
+        if (! $target->can('ticket.respond')) {
+            $this->addError('assignResponderUserId', 'Hanya pengguna dengan izin penanganan respons yang dapat dipilih.');
+
+            return;
+        }
+
+        $already = $ticket->assignments()
+            ->where('user_id', $target->id)
+            ->where('is_active', true)
+            ->exists();
+
+        if ($already) {
+            $this->addError('assignResponderUserId', 'Pengguna ini sudah ditugaskan pada tiket ini.');
+
+            return;
+        }
+
+        $ticket->loadMissing(['assignments' => fn ($q) => $q->where('is_active', true)]);
+        $formerPrimary = $ticket->assignments
+            ->firstWhere('kind', TicketAssignment::KIND_ASSIGNED_PRIMARY);
+        $formerPrimaryId = $formerPrimary?->user_id;
+
+        $ticket->assignTo($target->id, auth()->user());
+
+        if (
+            $formerPrimaryId !== null
+            && $formerPrimaryId !== $target->id
+        ) {
+            $formerUser = User::query()->find($formerPrimaryId);
+            if ($formerUser !== null && $formerUser->can('ticket.analyze')) {
+                $hasActiveForFormer = $ticket->assignments()
+                    ->where('user_id', $formerPrimaryId)
+                    ->where('is_active', true)
+                    ->exists();
+                if (! $hasActiveForFormer) {
+                    $ticket->addContributor($formerPrimaryId, auth()->user());
+                }
+            }
+        }
+
+        session()->flash('toast_success', 'Tiket ditugaskan ke responder '.$target->name.'.');
+        $this->assignResponderUserId = null;
+        $this->syncAssignResponderUserIdFromTicket($ticket->fresh());
+        $this->resetValidation();
+    }
+
+    /**
+     * Koordinator: buka kembali fase Response dari Resolution agar responder dapat menambah catatan tindakan.
+     */
+    public function reopenResponseRecording(): void
+    {
+        $ticket = Ticket::query()
+            ->where('public_id', $this->detailTicketPublicId)
+            ->firstOrFail();
+
+        $this->authorize('reopenResponseRecording', $ticket);
+
+        $user = auth()->user();
+        assert($user instanceof User);
+
+        try {
+            $ticket->reopenResponsePhaseForAdditionalActions($user);
+        } catch (\Throwable $e) {
+            session()->flash('toast_error', $e->getMessage());
+
+            return;
+        }
+
+        session()->flash('toast_success', 'Fase respons dibuka kembali. Responder dapat menambah catatan tindakan lewat halaman penanganan.');
     }
 
     public function createTicket(TicketService $ticketService): void
@@ -311,27 +510,106 @@ class IndexPage extends Component
         return '0.0';
     }
 
+    private function isAnalystListMode(): bool
+    {
+        if ($this->scope === 'analyst') {
+            return true;
+        }
+
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $user->seesOnlyAnalystTicketListInNavigation();
+    }
+
+    private function isResponderListMode(): bool
+    {
+        if ($this->scope === 'responder') {
+            return true;
+        }
+
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $user->seesOnlyResponderTicketListInNavigation();
+    }
+
     /**
      * @return Builder<Ticket>
      */
     private function ticketsQuery(): Builder
     {
         $user = auth()->user();
+        assert($user instanceof User);
 
-        return Ticket::query()
+        $q = Ticket::query()
             ->with([
                 'category',
                 'assignments' => fn ($q) => $q->where('is_active', true)->with('user'),
-            ])
-            ->when(! $user->can('ticket.view_all') && ! $user->hasRole('pic'), function (Builder $q) use ($user): void {
+            ]);
+
+        if ($this->isAnalystListMode()) {
+            $q->whereHas('assignments', function (Builder $q) use ($user): void {
+                $q->where('user_id', $user->id)->where('is_active', true);
+            })
+                ->withExists('analyses');
+        } elseif ($this->isResponderListMode()) {
+            $q->whereHas('assignments', function (Builder $q) use ($user): void {
+                $q->where('user_id', $user->id)->where('is_active', true);
+            })
+                ->whereHas('analyses')
+                ->whereIn('sub_status', $this->responderQueueSubStatuses())
+                ->withCount('responseActions');
+
+            if ($this->responderFilterStatus === 'ready_for_response') {
+                $q->where('sub_status', Ticket::SUB_STATUS_RESPONSE)
+                    ->whereDoesntHave('responseActions');
+            } elseif ($this->responderFilterStatus === 'in_progress') {
+                $q->where('sub_status', Ticket::SUB_STATUS_RESPONSE)
+                    ->whereHas('responseActions');
+            } elseif ($this->responderFilterStatus === 'resolved') {
+                $q->where('sub_status', Ticket::SUB_STATUS_RESOLUTION);
+            }
+
+            if (
+                $this->responderFilterSeverity !== 'all'
+                && in_array($this->responderFilterSeverity, ['Low', 'Medium', 'High', 'Critical'], true)
+            ) {
+                $q->whereRaw(
+                    '(select severity from incident_analyses where incident_analyses.ticket_id = tickets.id order by incident_analyses.created_at desc, incident_analyses.id desc limit 1) = ?',
+                    [$this->responderFilterSeverity]
+                );
+            }
+        } else {
+            $q->when(! $user->can('ticket.view_all') && ! $user->hasRole('pic'), function (Builder $q) use ($user): void {
                 $q->where(function (Builder $q) use ($user): void {
                     $q->where('created_by', $user->id)
                         ->orWhereHas('assignments', function (Builder $q) use ($user): void {
                             $q->where('user_id', $user->id)->where('is_active', true);
                         });
                 });
-            })
-            ->latest('created_at');
+            });
+        }
+
+        return $q->latest('created_at');
+    }
+
+    /**
+     * Sub-status tiket yang masuk antrean responder (selaras dengan gate view responder-only dan polling).
+     *
+     * @return list<string>
+     */
+    private function responderQueueSubStatuses(): array
+    {
+        return [
+            Ticket::SUB_STATUS_ANALYSIS,
+            Ticket::SUB_STATUS_RESPONSE,
+            Ticket::SUB_STATUS_RESOLUTION,
+        ];
     }
 
     private function syncAssignAnalystUserIdFromTicket(Ticket $ticket): void
@@ -340,6 +618,22 @@ class IndexPage extends Component
         $primary = $ticket->assignments
             ->firstWhere('kind', TicketAssignment::KIND_ASSIGNED_PRIMARY);
         $this->assignAnalystUserId = $primary !== null ? (string) $primary->user_id : null;
+    }
+
+    private function syncAssignResponderUserIdFromTicket(Ticket $ticket): void
+    {
+        $ticket->loadMissing(['assignments' => fn ($q) => $q->where('is_active', true)->with('user')]);
+        $primary = $ticket->assignments->firstWhere('kind', TicketAssignment::KIND_ASSIGNED_PRIMARY);
+        $uid = $primary?->user_id;
+        if ($uid !== null) {
+            $primaryUser = $primary?->user ?? User::query()->find($uid);
+            if ($primaryUser !== null && $primaryUser->can('ticket.respond')) {
+                $this->assignResponderUserId = (string) $uid;
+
+                return;
+            }
+        }
+        $this->assignResponderUserId = null;
     }
 
     private function prefillCreateFormFromAuth(): void
@@ -429,6 +723,9 @@ class IndexPage extends Component
             'organizations' => Organization::query()->orderBy('name')->get(),
             'detailTicket' => $detailTicket,
             'analysts' => User::role('analis')->orderBy('name')->get(),
+            'responders' => User::permission('ticket.respond')->orderBy('name')->get(),
+            'analystListMode' => $this->isAnalystListMode(),
+            'responderListMode' => $this->isResponderListMode(),
         ]);
     }
 }
