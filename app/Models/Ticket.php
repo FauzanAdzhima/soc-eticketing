@@ -37,6 +37,9 @@ class Ticket extends Model
         'sub_status',
         'created_by',
         'closed_at',
+        'handling_validated_at',
+        'handling_validated_by',
+        'reopened_at',
     ];
 
     /**
@@ -47,6 +50,8 @@ class Ticket extends Model
         'incident_time' => 'datetime',
         'report_is_valid' => 'boolean',
         'closed_at' => 'datetime',
+        'handling_validated_at' => 'datetime',
+        'reopened_at' => 'datetime',
     ];
 
     public function organization()
@@ -87,6 +92,11 @@ class Ticket extends Model
     public function logs()
     {
         return $this->hasMany(TicketLog::class);
+    }
+
+    public function ticketReport()
+    {
+        return $this->hasOne(TicketReport::class);
     }
 
     public const STATUS_AWAITING_VERIFICATION = 'Awaiting Verification';
@@ -188,6 +198,47 @@ class Ticket extends Model
         return [
             'slug' => 'other',
             'label' => $this->sub_status ?? '—',
+            'badge_class' => 'bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',
+        ];
+    }
+
+    /**
+     * Badge lifecycle koordinator.
+     *
+     * - validated (purple): sub_status=Resolution && handling_validated_at terisi
+     * - closed (green): status=Closed
+     * - reopened (red): reopened_at terisi dan belum divalidated lagi
+     *
+     * @return array{label: string, badge_class: string}
+     */
+    public function coordinatorBadge(): array
+    {
+        if ($this->status === self::STATUS_CLOSED) {
+            return [
+                'label' => 'Closed',
+                'badge_class' => 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+            ];
+        }
+
+        if (
+            $this->sub_status === self::SUB_STATUS_RESOLUTION
+            && $this->handling_validated_at !== null
+        ) {
+            return [
+                'label' => 'Validated',
+                'badge_class' => 'bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300',
+            ];
+        }
+
+        if ($this->reopened_at !== null && $this->handling_validated_at === null) {
+            return [
+                'label' => 'Reopened',
+                'badge_class' => 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+            ];
+        }
+
+        return [
+            'label' => $this->status ?? '—',
             'badge_class' => 'bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',
         ];
     }
@@ -320,6 +371,62 @@ class Ticket extends Model
     }
 
     /**
+     * Koordinator: Validasi penanganan (Resolved -> Validated).
+     *
+     * - Set `handling_validated_at/by`
+     * - Hapus `reopened_at` agar badge "reopened" berubah jadi "validated"
+     */
+    public function validateHandling(User $user, bool $isSystem = false): void
+    {
+        if ($this->isTerminal()) {
+            throw new Exception('Tiket tidak dapat divalidasi.');
+        }
+
+        if ($this->status !== self::STATUS_ON_PROGRESS) {
+            throw new Exception('Tiket harus On Progress.');
+        }
+
+        if ($this->sub_status !== self::SUB_STATUS_RESOLUTION) {
+            throw new Exception('Tiket tidak dalam fase Resolution.');
+        }
+
+        if ($this->report_status !== self::REPORT_STATUS_VERIFIED || ! $this->report_is_valid) {
+            throw new Exception('Tiket harus memiliki laporan yang Verified dan valid.');
+        }
+
+        if (! $isSystem) {
+            if (! $user->can('ticket.validate_handling')) {
+                throw new Exception('Anda tidak memiliki izin untuk memvalidasi penanganan.');
+            }
+        }
+
+        if (! $this->analyses()->exists()) {
+            throw new Exception('Analisis insiden belum ada.');
+        }
+
+        if (! $this->responseActions()->exists()) {
+            throw new Exception('Tindakan respons belum ada.');
+        }
+
+        $validatedAt = now();
+
+        $this->handling_validated_at = $validatedAt;
+        $this->handling_validated_by = $user->id;
+        $this->reopened_at = null;
+        $this->save();
+
+        TicketLog::create([
+            'ticket_id' => $this->id,
+            'user_id' => $user->id,
+            'action' => 'handling_validated',
+            'data' => json_encode([
+                'handling_validated_at' => (string) $validatedAt,
+                'handling_validated_by' => $user->id,
+            ]),
+        ]);
+    }
+
+    /**
      * Koordinator menutup tiket yang telah selesai ditangani.
      */
     public function close(User $user, bool $isSystem = false): void
@@ -328,15 +435,49 @@ class Ticket extends Model
             throw new Exception('Tiket sudah ditutup.');
         }
 
+        if ($this->isReportRejected()) {
+            throw new Exception('Tiket tidak dapat ditutup karena laporan ditolak.');
+        }
+
         if (! $isSystem) {
-            if (! $user->hasRole('koordinator')) {
-                throw new Exception('Hanya koordinator yang dapat menutup tiket.');
+            if (! $user->can('ticket.close')) {
+                throw new Exception('Anda tidak memiliki izin untuk menutup tiket.');
             }
+        }
+
+        // Backward compatibility:
+        // Pada versi aplikasi lama, koordinat bisa langsung menutup dari sub-status Resolution.
+        // Untuk mendukung badge "validated", set handling_validated_* secara implisit jika memenuhi kondisi minimal.
+        $implicitValidatedAt = null;
+        if (
+            $this->handling_validated_at === null
+            && $this->status === self::STATUS_ON_PROGRESS
+            && $this->sub_status === self::SUB_STATUS_RESOLUTION
+            && $this->report_status === self::REPORT_STATUS_VERIFIED
+            && $this->report_is_valid
+        ) {
+            $implicitValidatedAt = now();
+            $this->handling_validated_at = $implicitValidatedAt;
+            $this->handling_validated_by = $user->id;
+            $this->reopened_at = null;
         }
 
         $this->status = self::STATUS_CLOSED;
         $this->closed_at = now();
         $this->save();
+
+        if ($implicitValidatedAt !== null) {
+            TicketLog::create([
+                'ticket_id' => $this->id,
+                'user_id' => $user->id,
+                'action' => 'handling_validated',
+                'data' => json_encode([
+                    'handling_validated_at' => (string) $implicitValidatedAt,
+                    'handling_validated_by' => $user->id,
+                    'implicit' => true,
+                ]),
+            ]);
+        }
 
         TicketLog::create([
             'ticket_id' => $this->id,
@@ -344,6 +485,66 @@ class Ticket extends Model
             'action' => 'closed',
             'data' => json_encode([
                 'status' => self::STATUS_CLOSED,
+            ]),
+        ]);
+    }
+
+    /**
+     * Koordinator: membuka kembali tiket yang sudah Closed untuk fase Response.
+     *
+     * Alasan wajib (minimal 15 karakter) dan harus tertulis di ticket_logs.
+     */
+    public function reopenClosed(User $user, string $reason, bool $isSystem = false): void
+    {
+        $reason = trim($reason);
+        if (mb_strlen($reason) < 15) {
+            throw new Exception('Alasan reopen wajib diisi minimal 15 karakter.');
+        }
+
+        if (! $isSystem) {
+            if (! $user->can('ticket.reopen_closed')) {
+                throw new Exception('Anda tidak memiliki izin untuk membuka kembali tiket.');
+            }
+        }
+
+        if (! $this->isClosed()) {
+            throw new Exception('Tiket harus dalam status Closed.');
+        }
+
+        if ($this->isReportRejected()) {
+            throw new Exception('Tiket tidak dapat dibuka kembali karena laporan ditolak.');
+        }
+
+        if ($this->report_status !== self::REPORT_STATUS_VERIFIED || ! $this->report_is_valid) {
+            throw new Exception('Tiket harus memiliki laporan yang Verified dan valid.');
+        }
+
+        if (! $this->analyses()->exists()) {
+            throw new Exception('Analisis insiden belum ada.');
+        }
+
+        $reopenedAt = now();
+
+        $this->reopened_at = $reopenedAt;
+        $this->closed_at = null;
+        $this->status = self::STATUS_ON_PROGRESS;
+        $this->sub_status = self::SUB_STATUS_RESPONSE;
+
+        // Setelah reopen, badge "validated" harus hilang sampai divalidasi lagi.
+        $this->handling_validated_at = null;
+        $this->handling_validated_by = null;
+
+        $this->save();
+
+        TicketLog::create([
+            'ticket_id' => $this->id,
+            'user_id' => $user->id,
+            'action' => 'ticket_reopened',
+            'data' => json_encode([
+                'reason' => $reason,
+                'reopened_at' => (string) $reopenedAt,
+                'status' => self::STATUS_ON_PROGRESS,
+                'sub_status' => self::SUB_STATUS_RESPONSE,
             ]),
         ]);
     }

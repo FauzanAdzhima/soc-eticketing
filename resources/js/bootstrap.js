@@ -38,4 +38,8 @@ if (reverbKey && userIdMeta?.content) {
     window.Echo.private(`user.${userId}`).listen('.ticket.assigned', (payload) => {
         window.dispatchEvent(new CustomEvent('ticket-assigned', { detail: payload }));
     });
+
+    window.Echo.private(`user.${userId}`).listen('.ticket.resolved', (payload) => {
+        window.dispatchEvent(new CustomEvent('ticket-resolved', { detail: payload }));
+    });
 }

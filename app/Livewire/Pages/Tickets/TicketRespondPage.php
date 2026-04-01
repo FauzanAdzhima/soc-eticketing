@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pages\Tickets;
 
+use App\Events\TicketResolvedByResponder;
 use App\Models\IncidentResponseAction;
 use App\Models\Ticket;
 use App\Models\TicketLog;
@@ -86,6 +87,9 @@ class TicketRespondPage extends Component
 
             return;
         }
+
+        // Broadcast ke seluruh koordinator setelah responder menandai selesai.
+        event(new TicketResolvedByResponder($ticket));
 
         session()->flash('toast_success', 'Penanganan ditandai selesai (Resolution).');
     }

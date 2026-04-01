@@ -47,40 +47,170 @@
     @auth
         <div
             x-data="{
-                open: false,
                 payload: null,
-                reset() {
-                    this.open = false;
+                totalMs: 5000,
+                remainingMs: 5000,
+                tickMs: 50,
+                timer: null,
+                fadeOpacity() {
+                    return Math.max(0, this.remainingMs / this.totalMs);
+                },
+                start() {
+                    if (this.timer) {
+                        clearInterval(this.timer);
+                        this.timer = null;
+                    }
+                    this.remainingMs = this.totalMs;
+                    this.timer = setInterval(() => {
+                        this.remainingMs -= this.tickMs;
+                        if (this.remainingMs <= 0) {
+                            this.remainingMs = 0;
+                            this.hide();
+                        }
+                    }, this.tickMs);
+                },
+                show(detail) {
+                    this.payload = detail;
+                    this.remainingMs = this.totalMs;
+                    this.$nextTick(() => {
+                        const el = this.$refs.assignedToastPopover;
+                        if (el && typeof el.showPopover === 'function') {
+                            el.showPopover();
+                        }
+                        this.start();
+                    });
+                },
+                hide() {
+                    if (this.timer) {
+                        clearInterval(this.timer);
+                        this.timer = null;
+                    }
+                    const el = this.$refs.assignedToastPopover;
+                    if (el && typeof el.hidePopover === 'function') {
+                        el.hidePopover();
+                    }
                     this.payload = null;
                 },
             }"
-            @ticket-assigned.window="open = true; payload = $event.detail"
-            x-show="open"
-            x-cloak
-            class="fixed bottom-4 right-4 z-50 max-w-sm"
-            role="status"
+            @ticket-assigned.window="show($event.detail)"
         >
             <div
-                class="rounded-lg border border-sky-200 bg-white p-4 shadow-lg dark:border-sky-800/60 dark:bg-zinc-900"
-                x-show="open && payload"
+                popover="manual"
+                x-ref="assignedToastPopover"
+                x-show="payload"
+                x-cloak
+                class="app-toast-popover border-0 bg-transparent p-0 shadow-none"
             >
-                <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Penugasan tiket baru</p>
-                <p class="mt-1 text-xs font-mono text-zinc-500 dark:text-zinc-400" x-text="payload?.ticket_number"></p>
-                <p class="mt-1 text-sm text-zinc-700 dark:text-zinc-300" x-text="payload?.title"></p>
-                <div class="mt-3 flex justify-end gap-2">
-                    <button
-                        type="button"
-                        class="text-xs font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
-                        @click="reset()"
-                    >
-                        Tutup
-                    </button>
-                    <a
-                        :href="payload ? '{{ url('/tickets') }}?ticket=' + encodeURIComponent(payload.ticket_public_id) + '&scope=analyst' : '#'"
-                        class="text-xs font-medium text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300"
-                    >
-                        Buka daftar
-                    </a>
+                <div
+                    class="max-w-sm rounded-lg border border-sky-700 bg-sky-600 p-4 text-sky-50 shadow-lg dark:border-sky-400 dark:bg-sky-500 dark:text-white"
+                    x-show="payload"
+                    :style="{ opacity: fadeOpacity() }"
+                    x-cloak
+                    role="status"
+                >
+                    <p class="text-sm font-semibold text-sky-50 dark:text-white">Penugasan tiket baru</p>
+                    <p class="mt-1 text-xs font-mono text-sky-100/90 dark:text-sky-100" x-text="payload?.ticket_number"></p>
+                    <p class="mt-1 text-sm text-sky-50/95 dark:text-white/95" x-text="payload?.title"></p>
+                    <div class="mt-3 flex justify-end gap-2">
+                        <button
+                            type="button"
+                            class="text-xs font-medium text-sky-100 hover:text-white dark:text-sky-100 dark:hover:text-white"
+                            @click.stop.prevent="hide()"
+                        >
+                            Tutup
+                        </button>
+                        <a
+                            :href="payload ? '{{ url('/tickets') }}?ticket=' + encodeURIComponent(payload.ticket_public_id) + '&scope=analyst' : '#'"
+                            class="text-xs font-medium text-white underline decoration-white/60 underline-offset-2 hover:decoration-white"
+                        >
+                            Buka daftar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            x-data="{
+                payload: null,
+                totalMs: 5000,
+                remainingMs: 5000,
+                tickMs: 50,
+                timer: null,
+                fadeOpacity() {
+                    return Math.max(0, this.remainingMs / this.totalMs);
+                },
+                start() {
+                    if (this.timer) {
+                        clearInterval(this.timer);
+                        this.timer = null;
+                    }
+                    this.remainingMs = this.totalMs;
+                    this.timer = setInterval(() => {
+                        this.remainingMs -= this.tickMs;
+                        if (this.remainingMs <= 0) {
+                            this.remainingMs = 0;
+                            this.hide();
+                        }
+                    }, this.tickMs);
+                },
+                show(detail) {
+                    this.payload = detail;
+                    this.remainingMs = this.totalMs;
+                    this.$nextTick(() => {
+                        const el = this.$refs.resolvedToastPopover;
+                        if (el && typeof el.showPopover === 'function') {
+                            el.showPopover();
+                        }
+                        this.start();
+                    });
+                },
+                hide() {
+                    if (this.timer) {
+                        clearInterval(this.timer);
+                        this.timer = null;
+                    }
+                    const el = this.$refs.resolvedToastPopover;
+                    if (el && typeof el.hidePopover === 'function') {
+                        el.hidePopover();
+                    }
+                    this.payload = null;
+                },
+            }"
+            @ticket-resolved.window="show($event.detail)"
+        >
+            <div
+                popover="manual"
+                x-ref="resolvedToastPopover"
+                x-show="payload"
+                x-cloak
+                class="app-toast-popover border-0 bg-transparent p-0 shadow-none"
+            >
+                <div
+                    class="max-w-sm rounded-lg border border-emerald-700 bg-emerald-600 p-4 text-emerald-50 shadow-lg dark:border-emerald-400 dark:bg-emerald-500 dark:text-white"
+                    x-show="payload"
+                    :style="{ opacity: fadeOpacity() }"
+                    x-cloak
+                    role="status"
+                >
+                    <p class="text-sm font-semibold text-emerald-50 dark:text-white">Tiket selesai ditangani</p>
+                    <p class="mt-1 text-xs font-mono text-emerald-100/90 dark:text-emerald-100" x-text="payload?.ticket_number"></p>
+                    <p class="mt-1 text-sm text-emerald-50/95 dark:text-white/95" x-text="payload?.title"></p>
+                    <div class="mt-3 flex justify-end gap-2">
+                        <a
+                            :href="payload ? '{{ url('/tickets') }}?ticket=' + encodeURIComponent(payload.ticket_public_id) : '#'"
+                            class="text-xs font-medium text-white underline decoration-white/60 underline-offset-2 hover:decoration-white"
+                        >
+                            Buka detail
+                        </a>
+                        <button
+                            type="button"
+                            class="text-xs font-medium text-emerald-100 hover:text-white dark:text-emerald-100 dark:hover:text-white"
+                            @click.stop.prevent="hide()"
+                        >
+                            Tutup
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

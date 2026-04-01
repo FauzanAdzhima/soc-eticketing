@@ -243,7 +243,7 @@ class TicketPolicy
      */
     public function reopenResponseRecording(User $user, Ticket $ticket): bool
     {
-        if (! $user->hasRole('koordinator')) {
+        if (! $user->can('ticket.reopen_closed')) {
             return false;
         }
 
@@ -262,6 +262,82 @@ class TicketPolicy
         return $ticket->analyses()->exists();
     }
 
+    /**
+     * Koordinator: menandai penanganan respons selesai (Validated).
+     */
+    public function validateHandling(User $user, Ticket $ticket): bool
+    {
+        if ($ticket->isTerminal()) {
+            return false;
+        }
+
+        if ($ticket->status !== Ticket::STATUS_ON_PROGRESS) {
+            return false;
+        }
+
+        if ($ticket->sub_status !== Ticket::SUB_STATUS_RESOLUTION) {
+            return false;
+        }
+
+        if ($ticket->report_status !== Ticket::REPORT_STATUS_VERIFIED) {
+            return false;
+        }
+
+        if (! $ticket->report_is_valid) {
+            return false;
+        }
+
+        if (! $ticket->analyses()->exists()) {
+            return false;
+        }
+
+        if (! $ticket->responseActions()->exists()) {
+            return false;
+        }
+
+        return $user->can('ticket.validate_handling');
+    }
+
+    /**
+     * Koordinator: membuka kembali tiket dari Closed untuk fase Response.
+     */
+    public function reopenClosed(User $user, Ticket $ticket): bool
+    {
+        if (! $user->can('ticket.reopen_closed')) {
+            return false;
+        }
+
+        if (! $ticket->isClosed()) {
+            return false;
+        }
+
+        if ($ticket->isReportRejected()) {
+            return false;
+        }
+
+        if ($ticket->report_status !== Ticket::REPORT_STATUS_VERIFIED) {
+            return false;
+        }
+
+        if (! $ticket->report_is_valid) {
+            return false;
+        }
+
+        return $ticket->analyses()->exists();
+    }
+
+    /**
+     * Koordinator: mengelola laporan koordinator untuk tiket.
+     */
+    public function manageIncidentReport(User $user, Ticket $ticket): bool
+    {
+        if ($ticket->isReportRejected()) {
+            return false;
+        }
+
+        return $user->can('ticket.incident_report.manage');
+    }
+
     public function close(User $user, Ticket $ticket): bool
     {
         if ($ticket->isClosed()) {
@@ -272,7 +348,7 @@ class TicketPolicy
             return false;
         }
 
-        return $user->can('ticket.close') && $user->hasRole('koordinator');
+        return $user->can('ticket.close');
     }
 
     public function verifyReport(User $user, Ticket $ticket): bool
@@ -300,7 +376,8 @@ class TicketPolicy
             return false;
         }
 
-        if ($user->hasRole('koordinator')) {
+        // Koordinator bisa mengassign langsung selama tiket tidak terminal.
+        if ($user->can('ticket.assign') && $user->can('ticket.close')) {
             return true;
         }
 
@@ -342,7 +419,8 @@ class TicketPolicy
             return false;
         }
 
-        if ($user->hasRole('koordinator')) {
+        // Koordinator bisa meng-handoff langsung selama tiket belum terminal.
+        if ($user->can('ticket.assign') && $user->can('ticket.close')) {
             return true;
         }
 

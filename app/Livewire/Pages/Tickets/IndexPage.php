@@ -70,6 +70,9 @@ class IndexPage extends Component
 
     public string $rejectReportReason = '';
 
+    /** Alasan reopen saat tiket sudah Closed (untuk koordinator). */
+    public string $reopenReason = '';
+
     public bool $showRejectReportPanel = false;
 
     /** Baseline jumlah tiket dengan penugasan aktif ke user (mode analis), untuk deteksi penugasan baru saat polling. */
@@ -80,6 +83,9 @@ class IndexPage extends Component
     public ?int $responderAssignmentPollBaseline = null;
 
     public bool $showResponderNewAssignmentBanner = false;
+
+    /** @var ''|'analyst'|'responder' */
+    public string $reassignMode = '';
 
     public function mount(): void
     {
@@ -219,7 +225,9 @@ class IndexPage extends Component
         $this->syncAssignAnalystUserIdFromTicket($ticket);
         $this->syncAssignResponderUserIdFromTicket($ticket);
         $this->rejectReportReason = '';
+        $this->reopenReason = '';
         $this->showRejectReportPanel = false;
+        $this->reassignMode = '';
         $this->resetValidation();
         $this->modal('ticket-detail-modal')->show();
     }
@@ -231,7 +239,21 @@ class IndexPage extends Component
         $this->assignAnalystUserId = null;
         $this->assignResponderUserId = null;
         $this->rejectReportReason = '';
+        $this->reopenReason = '';
         $this->showRejectReportPanel = false;
+        $this->reassignMode = '';
+    }
+
+    public function showReassignAnalyst(): void
+    {
+        $this->reassignMode = 'analyst';
+        $this->resetValidation();
+    }
+
+    public function showReassignResponder(): void
+    {
+        $this->reassignMode = 'responder';
+        $this->resetValidation();
     }
 
     public function verifyTicketReport(): void
@@ -336,6 +358,7 @@ class IndexPage extends Component
 
         session()->flash('toast_success', 'Tiket berhasil ditugaskan ke '.$target->name.'.');
         $this->assignAnalystUserId = null;
+        $this->reassignMode = '';
         $this->resetValidation();
         $fresh = $ticket->fresh();
         if ($fresh !== null) {
@@ -405,6 +428,7 @@ class IndexPage extends Component
 
         session()->flash('toast_success', 'Tiket ditugaskan ke responder '.$target->name.'.');
         $this->assignResponderUserId = null;
+        $this->reassignMode = '';
         $this->syncAssignResponderUserIdFromTicket($ticket->fresh());
         $this->resetValidation();
     }
@@ -432,6 +456,67 @@ class IndexPage extends Component
         }
 
         session()->flash('toast_success', 'Fase respons dibuka kembali. Responder dapat menambah catatan tindakan lewat halaman penanganan.');
+    }
+
+    /**
+     * Koordinator: menutup tiket.
+     */
+    public function closeTicketByCoordinator(): void
+    {
+        $ticket = Ticket::query()
+            ->where('public_id', $this->detailTicketPublicId)
+            ->firstOrFail();
+
+        $this->authorize('close', $ticket);
+
+        $user = auth()->user();
+        assert($user instanceof User);
+
+        try {
+            $ticket->close($user);
+        } catch (\Throwable $e) {
+            session()->flash('toast_error', $e->getMessage());
+
+            return;
+        }
+
+        session()->flash('toast_success', 'Tiket ditutup untuk alur koordinator.');
+        $this->closeTicketDetail();
+    }
+
+    /**
+     * Koordinator: membuka kembali tiket Closed untuk fase Response.
+     */
+    public function reopenClosedByCoordinator(): void
+    {
+        $ticket = Ticket::query()
+            ->where('public_id', $this->detailTicketPublicId)
+            ->firstOrFail();
+
+        $this->authorize('reopenClosed', $ticket);
+
+        $this->validate([
+            'reopenReason' => ['required', 'string', 'min:15', 'max:2000'],
+        ], [
+            'reopenReason.required' => 'Berikan alasan reopen.',
+            'reopenReason.min' => 'Alasan reopen minimal 15 karakter.',
+        ]);
+
+        $user = auth()->user();
+        assert($user instanceof User);
+
+        try {
+            $ticket->reopenClosed($user, trim($this->reopenReason));
+        } catch (\Throwable $e) {
+            session()->flash('toast_error', $e->getMessage());
+
+            return;
+        }
+
+        $this->reopenReason = '';
+        $this->resetValidation();
+
+        session()->flash('toast_success', 'Tiket dibuka kembali untuk fase Response.');
     }
 
     public function createTicket(TicketService $ticketService): void
@@ -713,6 +798,8 @@ class IndexPage extends Component
                     'creator',
                     'evidences',
                     'assignments' => fn ($q) => $q->where('is_active', true)->with('user'),
+                    'analyses' => fn ($q) => $q->latest('created_at')->with(['performer', 'iocs.iocType']),
+                    'responseActions' => fn ($q) => $q->latest('created_at')->with('performer'),
                 ])
                 ->first();
         }

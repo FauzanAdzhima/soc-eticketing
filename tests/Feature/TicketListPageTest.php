@@ -4,6 +4,10 @@ namespace Tests\Feature;
 
 use App\Livewire\Pages\Tickets\IndexPage;
 use App\Models\IncidentCategory;
+use App\Models\IncidentAnalysis;
+use App\Models\IncidentIoc;
+use App\Models\IncidentIocType;
+use App\Models\IncidentResponseAction;
 use App\Models\Organization;
 use App\Models\Ticket;
 use App\Models\TicketAssignment;
@@ -283,6 +287,112 @@ class TicketListPageTest extends TestCase
                 ->where('user_id', $analisB->id)
                 ->exists()
         );
+    }
+
+    public function test_koordinator_detail_modal_shows_header_and_accordions_and_hides_reopen_response_button(): void
+    {
+        $koordinator = User::factory()->create();
+        $koordinator->assignRole('koordinator');
+        $analis = User::factory()->create();
+        $analis->assignRole('analis');
+        $responder = User::factory()->create();
+        $responder->assignRole('responder');
+
+        $ticket = $this->makeTicket([
+            'title' => 'Judul modal detail uji universal',
+            'created_by' => $koordinator->id,
+            'report_status' => Ticket::REPORT_STATUS_VERIFIED,
+            'report_is_valid' => true,
+            'status' => Ticket::STATUS_ON_PROGRESS,
+            'sub_status' => Ticket::SUB_STATUS_RESOLUTION,
+        ]);
+
+        $analysis = IncidentAnalysis::query()->create([
+            'ticket_id' => $ticket->id,
+            'performed_by' => $analis->id,
+            'severity' => 'High',
+            'impact' => 'Dampak uji',
+            'root_cause' => 'Akar uji',
+            'recommendation' => 'Rekomendasi uji',
+            'analysis_result' => 'Hasil analisis uji',
+        ]);
+
+        $iocType = IncidentIocType::query()->create([
+            'ioc_type' => 'IP Address',
+            'description' => 'IOC type test',
+        ]);
+        IncidentIoc::query()->create([
+            'public_id' => (string) Str::uuid(),
+            'analysis_id' => $analysis->id,
+            'incident_ioc_type_id' => $iocType->id,
+            'value' => '10.10.10.10',
+            'description' => 'IOC test value',
+        ]);
+
+        IncidentResponseAction::query()->create([
+            'ticket_id' => $ticket->id,
+            'performed_by' => $responder->id,
+            'action_type' => IncidentResponseAction::TYPE_MITIGATION,
+            'description' => 'Tindakan mitigasi uji',
+            'meta' => [],
+        ]);
+
+        Livewire::actingAs($koordinator)
+            ->test(IndexPage::class)
+            ->call('openTicketDetail', $ticket->public_id)
+            ->assertSee('Judul modal detail uji universal')
+            ->assertSee('Tutup')
+            ->assertSee('Laporan awal tiket')
+            ->assertSee('Analisis')
+            ->assertSee('Tindakan yang dilakukan')
+            ->assertSee('Penugasan ulang')
+            ->assertSee('Assign kembali ke analis')
+            ->assertSee('Assign kembali ke responder')
+            ->assertDontSee('Buka kembali fase respons');
+    }
+
+    public function test_reassign_group_button_shows_single_active_form_panel(): void
+    {
+        $koordinator = User::factory()->create();
+        $koordinator->assignRole('koordinator');
+        $analis = User::factory()->create();
+        $analis->assignRole('analis');
+        $responder = User::factory()->create();
+        $responder->assignRole('responder');
+
+        $ticket = $this->makeTicket([
+            'created_by' => $koordinator->id,
+            'report_status' => Ticket::REPORT_STATUS_VERIFIED,
+            'report_is_valid' => true,
+            'status' => Ticket::STATUS_ON_PROGRESS,
+            'sub_status' => Ticket::SUB_STATUS_RESOLUTION,
+        ]);
+
+        IncidentAnalysis::query()->create([
+            'ticket_id' => $ticket->id,
+            'performed_by' => $analis->id,
+            'severity' => 'Medium',
+            'impact' => 'Dampak',
+            'root_cause' => 'Akar',
+            'recommendation' => 'Rekomendasi',
+            'analysis_result' => 'Hasil',
+        ]);
+
+        $component = Livewire::actingAs($koordinator)
+            ->test(IndexPage::class)
+            ->call('openTicketDetail', $ticket->public_id)
+            ->assertDontSee('Pilih analis…')
+            ->assertDontSee('Pilih responder…');
+
+        $component
+            ->call('showReassignAnalyst')
+            ->assertSee('Pilih analis…')
+            ->assertDontSee('Pilih responder…');
+
+        $component
+            ->call('showReassignResponder')
+            ->assertSee('Pilih responder…')
+            ->assertDontSee('Pilih analis…');
     }
 
     /**

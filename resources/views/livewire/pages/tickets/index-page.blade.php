@@ -3,9 +3,61 @@
     if ($analystListMode || $responderListMode) {
         $tableColCount = 8;
     }
+    $showClosedAtColumn = auth()->user()?->hasRole('koordinator') && ! $analystListMode && ! $responderListMode;
+    if ($showClosedAtColumn) {
+        $tableColCount++;
+    }
 @endphp
 
-<div class="space-y-4">
+<div
+    class="space-y-4"
+    x-data="{
+        confirmTitle: 'Konfirmasi',
+        confirmMessage: '',
+        confirmVariant: 'danger',
+        confirmBusy: false,
+        confirmAction: null,
+        showConfirm: false,
+        onConfirmDialogClose() {
+            this.confirmBusy = false;
+            this.confirmAction = null;
+            this.confirmMessage = '';
+            this.confirmTitle = 'Konfirmasi';
+            this.showConfirm = false;
+            const container = this.$refs.ticketDetailScrollContainer;
+            if (container) {
+                container.style.overflowY = '';
+            }
+        },
+        openConfirm({ title = 'Konfirmasi', message = '', variant = 'danger', action = null }) {
+            this.confirmTitle = title;
+            this.confirmMessage = message;
+            this.confirmVariant = variant;
+            this.confirmAction = action;
+            this.confirmBusy = false;
+            this.showConfirm = true;
+            this.$nextTick(() => {
+                const container = this.$refs.ticketDetailScrollContainer;
+                if (container && typeof container.scrollTo === 'function') {
+                    container.scrollTo({ top: 0, behavior: 'smooth' });
+                    container.style.overflowY = 'hidden';
+                }
+            });
+        },
+        closeConfirm() {
+            this.onConfirmDialogClose();
+        },
+        async runConfirm() {
+            if (!this.confirmAction || this.confirmBusy) return;
+            this.confirmBusy = true;
+            try {
+                await this.confirmAction();
+            } finally {
+                this.closeConfirm();
+            }
+        },
+    }"
+>
     @if ($analystListMode && auth()->user()?->can('ticket.analyze'))
         <div wire:poll.20s="refreshAssignmentSignal" class="hidden" aria-hidden="true"></div>
     @endif
@@ -13,6 +65,7 @@
     @if ($responderListMode && auth()->user()?->can('ticket.respond'))
         <div wire:poll.20s="refreshResponderAssignmentSignal" class="hidden" aria-hidden="true"></div>
     @endif
+
 
     @if ($analystListMode && $showNewAssignmentBanner)
         <div
@@ -52,25 +105,21 @@
         </div>
     @endif
 
-    @if (session()->has('toast_success'))
-        <div x-data="{ open: true }" x-show="open" x-transition
-            class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-700/40 dark:bg-emerald-900/20 dark:text-emerald-300">
+    @if (! $detailTicket && session()->has('toast_success'))
+        <div x-data="{ open: true }" x-init="window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => open = false, 5000)" x-show="open"
+            class="rounded-lg border border-emerald-300 bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100">
             <div class="flex items-start justify-between gap-3">
                 <span>{{ session('toast_success') }}</span>
-                <button type="button" @click="open = false"
-                    class="text-base leading-none text-emerald-700/70 hover:text-emerald-900 dark:text-emerald-300/70 dark:hover:text-emerald-200"
-                    aria-label="Tutup">&times;</button>
+                <button type="button" @click="open = false" class="text-base leading-none">&times;</button>
             </div>
         </div>
     @endif
-    @if (session()->has('toast_error'))
-        <div x-data="{ open: true }" x-show="open" x-transition
-            class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
+    @if (! $detailTicket && session()->has('toast_error'))
+        <div x-data="{ open: true }" x-init="window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => open = false, 5000)" x-show="open"
+            class="rounded-lg border border-red-300 bg-red-100 px-4 py-3 text-sm text-red-900 dark:border-red-700 dark:bg-red-900/40 dark:text-red-100">
             <div class="flex items-start justify-between gap-3">
                 <span>{{ session('toast_error') }}</span>
-                <button type="button" @click="open = false"
-                    class="text-base leading-none text-red-700/70 hover:text-red-900 dark:text-red-300/70 dark:hover:text-red-200"
-                    aria-label="Tutup">&times;</button>
+                <button type="button" @click="open = false" class="text-base leading-none">&times;</button>
             </div>
         </div>
     @endif
@@ -128,6 +177,9 @@
                         <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Kategori</th>
                         <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Assigned To</th>
                         <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Dibuat</th>
+                        @if ($showClosedAtColumn)
+                            <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Ditutup</th>
+                        @endif
                         @if ($analystListMode)
                             <th class="px-3 py-2 text-left font-semibold text-zinc-700 dark:text-zinc-200">Sudah Dianalisis</th>
                         @endif
@@ -146,6 +198,7 @@
                                 ->filter()
                                 ->unique()
                                 ->join(', ');
+                            $coordinatorBadge = $ticket->coordinatorBadge();
                         @endphp
                         <tr wire:key="ticket-{{ $ticket->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                             <td class="whitespace-nowrap px-3 py-2 font-mono text-xs font-medium text-zinc-900 dark:text-zinc-100">
@@ -154,7 +207,11 @@
                             <td class="max-w-xs whitespace-nowrap px-3 py-2 text-zinc-900 dark:text-zinc-100" title="{{ $ticket->title }}">
                                 <span class="block truncate">{{ $ticket->title }}</span>
                             </td>
-                            <td class="whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ $ticket->status }}</td>
+                            <td class="whitespace-nowrap px-3 py-2">
+                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $coordinatorBadge['badge_class'] }}">
+                                    {{ $coordinatorBadge['label'] }}
+                                </span>
+                            </td>
                             <td class="whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ $ticket->category?->name ?? '—' }}</td>
                             <td class="max-w-[14rem] whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300" title="{{ $assignedNames }}">
                                 <span class="block truncate">{{ $assignedNames !== '' ? $assignedNames : '—' }}</span>
@@ -162,6 +219,11 @@
                             <td class="whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">
                                 {{ $ticket->created_at?->format('d M Y H:i') }}
                             </td>
+                            @if ($showClosedAtColumn)
+                                <td class="whitespace-nowrap px-3 py-2 text-zinc-600 dark:text-zinc-300">
+                                    {{ $ticket->closed_at?->format('d M Y H:i') ?? '—' }}
+                                </td>
+                            @endif
                             @if ($analystListMode)
                                 <td class="whitespace-nowrap px-3 py-2 text-zinc-700 dark:text-zinc-200">
                                     @if (! empty($ticket->analyses_exists))
@@ -350,7 +412,7 @@
         </flux:modal>
     @endcan
 
-    <flux:modal name="ticket-detail-modal" class="md:w-[800px]" wire:close="closeTicketDetail">
+    <flux:modal name="ticket-detail-modal" class="md:w-[1100px]" :closable="false" wire:close="closeTicketDetail">
         @if ($detailTicket)
             @php
                 $assignedNames = $detailTicket->assignments
@@ -359,108 +421,329 @@
                     ->filter()
                     ->unique()
                     ->join(', ');
+                $coordinatorBadge = $detailTicket->coordinatorBadge();
+                $readyForCoordinatorReassign = $detailTicket->status === \App\Models\Ticket::STATUS_ON_PROGRESS
+                    && $detailTicket->sub_status === \App\Models\Ticket::SUB_STATUS_RESOLUTION
+                    && $detailTicket->report_status === \App\Models\Ticket::REPORT_STATUS_VERIFIED
+                    && $detailTicket->report_is_valid === true;
             @endphp
-            <div class="space-y-6">
-                <header class="space-y-3">
-                    <div>
-                        <flux:heading size="xl">{{ $detailTicket->title }}</flux:heading>
-                        <p class="mt-1 font-mono text-sm text-zinc-500 dark:text-zinc-400">No. Tiket: {{ $detailTicket->ticket_number ?? '—' }}</p>
+            <div x-ref="ticketDetailScrollContainer" :class="showConfirm ? 'confirm-open' : ''" class="relative space-y-6 max-h-[80vh] overflow-x-hidden overflow-y-auto overscroll-contain">
+                <header class="sticky top-0 z-10 -mx-1 overflow-hidden rounded-t-xl border-b border-zinc-200 bg-white/95 px-4 pb-3 pt-4 backdrop-blur sm:px-5 dark:border-zinc-700 dark:bg-zinc-900/95">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1 pr-2">
+                            <flux:heading size="lg" class="line-clamp-3">{{ $detailTicket->title ?: '—' }}</flux:heading>
+                            <p class="mt-1 font-mono text-sm text-zinc-500 dark:text-zinc-400">No. Tiket: {{ $detailTicket->ticket_number ?? '—' }}</p>
+                        </div>
+                        <flux:button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            icon="x-mark"
+                            wire:click="closeTicketDetail"
+                            class="shrink-0"
+                            aria-label="Tutup"
+                        />
                     </div>
                     @can('analyze', $detailTicket)
                         @if ($analystListMode || ! auth()->user()?->shouldHideAnalysisShortcutOnMainTicketList())
-                            <flux:button href="{{ route('tickets.analysis', $detailTicket) }}" variant="primary" size="sm" wire:navigate>
-                                Buka formulir analisis & IOC
-                            </flux:button>
+                            <div class="mt-3">
+                                <flux:button href="{{ route('tickets.analysis', $detailTicket) }}" variant="primary" size="sm" wire:navigate>
+                                    Buka formulir analisis & IOC
+                                </flux:button>
+                            </div>
                         @endif
                     @endcan
                 </header>
 
-                <flux:card class="space-y-4 p-4 sm:p-5">
-                    <dl class="grid gap-3 text-sm sm:grid-cols-2">
-                        <div>
-                            <dt class="font-medium text-zinc-500 dark:text-zinc-400">Status</dt>
-                            <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->status }}</dd>
+                <div
+                    x-show="showConfirm"
+                    x-cloak
+                    class="confirm-overlay absolute -inset-3 z-40 flex items-center justify-center p-4"
+                    @keydown.escape.window="!confirmBusy && closeConfirm()"
+                >
+                    <div class="w-[min(100vw-2rem,32rem)] max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="text-base font-semibold text-zinc-900 dark:text-zinc-100" x-text="confirmTitle"></p>
+                                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300" x-text="confirmMessage"></p>
+                            </div>
+                            <button
+                                type="button"
+                                class="shrink-0 text-xl leading-none text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                                aria-label="Tutup"
+                                @click="!confirmBusy && closeConfirm()"
+                            >
+                                &times;
+                            </button>
                         </div>
-                        <div>
-                            <dt class="font-medium text-zinc-500 dark:text-zinc-400">Status laporan</dt>
-                            <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->report_status ?? '—' }}</dd>
+                        <div class="mt-5 flex justify-end gap-2">
+                            <flux:button type="button" variant="ghost" @click="!confirmBusy && closeConfirm()" x-bind:disabled="confirmBusy">
+                                Batal
+                            </flux:button>
+                            <flux:button
+                                type="button"
+                                variant="primary"
+                                @click="runConfirm()"
+                                x-show="confirmVariant !== 'danger'"
+                                x-bind:disabled="confirmBusy"
+                            >
+                                <span x-show="!confirmBusy">Konfirmasi</span>
+                                <span x-show="confirmBusy">Memproses…</span>
+                            </flux:button>
+                            <flux:button
+                                type="button"
+                                variant="danger"
+                                @click="runConfirm()"
+                                x-show="confirmVariant === 'danger'"
+                                x-bind:disabled="confirmBusy"
+                            >
+                                <span x-show="!confirmBusy">Konfirmasi</span>
+                                <span x-show="confirmBusy">Memproses…</span>
+                            </flux:button>
                         </div>
-                        <div>
-                            <dt class="font-medium text-zinc-500 dark:text-zinc-400">Sub-status</dt>
-                            <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->sub_status ?? '—' }}</dd>
-                        </div>
-                        <div>
-                            <dt class="font-medium text-zinc-500 dark:text-zinc-400">Laporan valid</dt>
-                            <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->report_is_valid ? 'Ya' : 'Belum' }}</dd>
-                        </div>
-                        <div>
-                            <dt class="font-medium text-zinc-500 dark:text-zinc-400">Kategori</dt>
-                            <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->category?->name ?? '—' }}</dd>
-                        </div>
-                        <div>
-                            <dt class="font-medium text-zinc-500 dark:text-zinc-400">Assigned To</dt>
-                            <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $assignedNames !== '' ? $assignedNames : '—' }}</dd>
-                        </div>
-                        <div>
-                            <dt class="font-medium text-zinc-500 dark:text-zinc-400">Dibuat</dt>
-                            <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->created_at?->format('d M Y H:i') }}</dd>
-                        </div>
-                        <div class="sm:col-span-2">
-                            <dt class="font-medium text-zinc-500 dark:text-zinc-400">Pembuat (internal)</dt>
-                            <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->creator?->name ?? '—' }}</dd>
-                        </div>
-                        <div class="sm:col-span-2">
-                            <dt class="font-medium text-zinc-500 dark:text-zinc-400">Deskripsi insiden</dt>
-                            <dd class="mt-0.5 whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{{ $detailTicket->incident_description ?? '—' }}</dd>
-                        </div>
-                    </dl>
-                    @if (filled($detailTicket->report_rejection_reason))
-                        <div class="mt-4 rounded-lg border border-red-200 bg-red-50/80 p-3 dark:border-red-900/50 dark:bg-red-950/20">
-                            <p class="text-sm font-medium text-red-800 dark:text-red-300">Alasan penolakan laporan</p>
-                            <p class="mt-1 whitespace-pre-wrap text-sm text-red-900 dark:text-red-100">{{ $detailTicket->report_rejection_reason }}</p>
-                        </div>
-                    @endif
-                </flux:card>
+                    </div>
+                </div>
 
-                <flux:card class="space-y-4 p-4 sm:p-5">
-                    <flux:heading size="lg">Bukti dukung</flux:heading>
-                    @if ($detailTicket->evidences->isEmpty())
-                        <flux:text class="text-zinc-500 dark:text-zinc-400">Tidak ada lampiran pada tiket ini.</flux:text>
-                    @else
-                        <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                            @foreach ($detailTicket->evidences as $evidence)
-                                @php
-                                    $evidenceUrl = route('tickets.evidence.show', $evidence);
-                                    $sizeKb = $evidence->size ? number_format((int) $evidence->size / 1024, 1) : null;
-                                @endphp
-                                <li class="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/80" wire:key="evidence-{{ $evidence->id }}">
-                                    <a href="{{ $evidenceUrl }}" target="_blank" rel="noopener noreferrer" class="block focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
-                                        <div class="relative h-28 w-full overflow-hidden bg-zinc-200 sm:h-32 dark:bg-zinc-700">
-                                            @if ($evidence->isLikelyImage())
-                                                <img src="{{ $evidenceUrl }}"
-                                                    alt="{{ $evidence->original_name ?? 'Bukti gambar' }}"
-                                                    class="h-full w-full object-cover"
-                                                    loading="lazy"
-                                                    decoding="async"
-                                                    fetchpriority="low">
-                                            @else
-                                                <div class="flex h-full w-full items-center justify-center text-xs font-medium text-zinc-600 dark:text-zinc-300">
-                                                    {{ strtoupper(\Illuminate\Support\Str::afterLast($evidence->original_name ?? 'file', '.')) ?: 'FILE' }}
+                @if (session()->has('toast_success'))
+                    <div x-data="{ open: true }" x-init="$el.closest('.max-h-\\[80vh\\]')?.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => open = false, 5000)" x-show="open" class="px-1">
+                        <div class="rounded-lg border border-emerald-300 bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100">
+                            <div class="flex items-start justify-between gap-3">
+                                <span>{{ session('toast_success') }}</span>
+                                <button type="button" @click="open = false" class="text-base leading-none" aria-label="Tutup">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+                @if (session()->has('toast_error'))
+                    <div x-data="{ open: true }" x-init="$el.closest('.max-h-\\[80vh\\]')?.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => open = false, 5000)" x-show="open" class="px-1">
+                        <div class="rounded-lg border border-red-300 bg-red-100 px-4 py-3 text-sm text-red-900 dark:border-red-700 dark:bg-red-900/40 dark:text-red-100">
+                            <div class="flex items-start justify-between gap-3">
+                                <span>{{ session('toast_error') }}</span>
+                                <button type="button" @click="open = false" class="text-base leading-none" aria-label="Tutup">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <details open class="group rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                    <summary
+                        class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-left outline-none transition hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 dark:hover:bg-zinc-800/60 [&::-webkit-details-marker]:hidden"
+                    >
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">Laporan awal tiket</span>
+                        </span>
+                        <svg
+                            class="size-4 shrink-0 text-zinc-500 transition-transform duration-200 group-open:rotate-180 sm:size-5 dark:text-zinc-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path fill-rule="evenodd"
+                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </summary>
+                    <div class="space-y-4 border-t border-zinc-200 p-4 dark:border-zinc-700 sm:p-5">
+                        <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                            <div>
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Status</dt>
+                                <dd class="mt-0.5">
+                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $coordinatorBadge['badge_class'] }}">
+                                        {{ $coordinatorBadge['label'] }}
+                                    </span>
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Status laporan</dt>
+                                <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->report_status ?? '—' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Sub-status</dt>
+                                <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->sub_status ?? '—' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Laporan valid</dt>
+                                <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->report_is_valid ? 'Ya' : 'Belum' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Kategori</dt>
+                                <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->category?->name ?? '—' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Assigned To</dt>
+                                <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $assignedNames !== '' ? $assignedNames : '—' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Dibuat</dt>
+                                <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->created_at?->format('d M Y H:i') }}</dd>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Pembuat (internal)</dt>
+                                <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailTicket->creator?->name ?? '—' }}</dd>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Deskripsi insiden</dt>
+                                <dd class="mt-0.5 whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{{ $detailTicket->incident_description ?? '—' }}</dd>
+                            </div>
+                        </dl>
+                        @if (filled($detailTicket->report_rejection_reason))
+                            <div class="mt-4 rounded-lg border border-red-200 bg-red-50/80 p-3 dark:border-red-900/50 dark:bg-red-950/20">
+                                <p class="text-sm font-medium text-red-800 dark:text-red-300">Alasan penolakan laporan</p>
+                                <p class="mt-1 whitespace-pre-wrap text-sm text-red-900 dark:text-red-100">{{ $detailTicket->report_rejection_reason }}</p>
+                            </div>
+                        @endif
+                        <div class="space-y-4">
+                            <flux:heading size="lg">Bukti dukung</flux:heading>
+                            @if ($detailTicket->evidences->isEmpty())
+                                <flux:text class="text-zinc-500 dark:text-zinc-400">Tidak ada lampiran pada tiket ini.</flux:text>
+                            @else
+                                <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                                    @foreach ($detailTicket->evidences as $evidence)
+                                        @php
+                                            $evidenceUrl = route('tickets.evidence.show', $evidence);
+                                            $sizeKb = $evidence->size ? number_format((int) $evidence->size / 1024, 1) : null;
+                                        @endphp
+                                        <li class="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/80" wire:key="evidence-{{ $evidence->id }}">
+                                            <a href="{{ $evidenceUrl }}" target="_blank" rel="noopener noreferrer" class="block focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+                                                <div class="relative h-28 w-full overflow-hidden bg-zinc-200 sm:h-32 dark:bg-zinc-700">
+                                                    @if ($evidence->isLikelyImage())
+                                                        <img src="{{ $evidenceUrl }}"
+                                                            alt="{{ $evidence->original_name ?? 'Bukti gambar' }}"
+                                                            class="h-full w-full object-cover"
+                                                            loading="lazy"
+                                                            decoding="async"
+                                                            fetchpriority="low">
+                                                    @else
+                                                        <div class="flex h-full w-full items-center justify-center text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                                                            {{ strtoupper(\Illuminate\Support\Str::afterLast($evidence->original_name ?? 'file', '.')) ?: 'FILE' }}
+                                                        </div>
+                                                    @endif
                                                 </div>
-                                            @endif
-                                        </div>
-                                        <div class="border-t border-zinc-200 p-2 dark:border-zinc-600">
-                                            <p class="truncate text-xs font-medium text-zinc-800 dark:text-zinc-100" title="{{ $evidence->original_name }}">{{ $evidence->original_name ?? 'Lampiran' }}</p>
-                                            @if ($sizeKb !== null)
-                                                <p class="text-[11px] text-zinc-500 dark:text-zinc-400">{{ $sizeKb }} KB</p>
-                                            @endif
-                                        </div>
-                                    </a>
-                                </li>
-                            @endforeach
-                        </ul>
-                    @endif
-                </flux:card>
+                                                <div class="border-t border-zinc-200 p-2 dark:border-zinc-600">
+                                                    <p class="truncate text-xs font-medium text-zinc-800 dark:text-zinc-100" title="{{ $evidence->original_name }}">{{ $evidence->original_name ?? 'Lampiran' }}</p>
+                                                    @if ($sizeKb !== null)
+                                                        <p class="text-[11px] text-zinc-500 dark:text-zinc-400">{{ $sizeKb }} KB</p>
+                                                    @endif
+                                                </div>
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </div>
+                    </div>
+                </details>
+
+                <details class="group rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                    <summary
+                        class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-left outline-none transition hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 dark:hover:bg-zinc-800/60 [&::-webkit-details-marker]:hidden"
+                    >
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">Analisis</span>
+                        </span>
+                        <svg
+                            class="size-4 shrink-0 text-zinc-500 transition-transform duration-200 group-open:rotate-180 sm:size-5 dark:text-zinc-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path fill-rule="evenodd"
+                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </summary>
+                    <div class="space-y-4 border-t border-zinc-200 p-4 dark:border-zinc-700 sm:p-5">
+                        @forelse ($detailTicket->analyses as $analysis)
+                            <div class="space-y-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+                                <div class="text-sm text-zinc-600 dark:text-zinc-300">
+                                    <span class="font-medium text-zinc-900 dark:text-zinc-100">Analis:</span>
+                                    {{ $analysis->performer?->name ?? '—' }}
+                                </div>
+                                <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                                    <div>
+                                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Severity</dt>
+                                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $analysis->severity ?? '—' }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Waktu</dt>
+                                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $analysis->created_at?->format('d M Y H:i') ?? '—' }}</dd>
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Hasil analisis</dt>
+                                        <dd class="mt-0.5 whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{{ $analysis->analysis_result ?? '—' }}</dd>
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Dampak</dt>
+                                        <dd class="mt-0.5 whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{{ $analysis->impact ?? '—' }}</dd>
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Akar masalah</dt>
+                                        <dd class="mt-0.5 whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{{ $analysis->root_cause ?? '—' }}</dd>
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Rekomendasi</dt>
+                                        <dd class="mt-0.5 whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{{ $analysis->recommendation ?? '—' }}</dd>
+                                    </div>
+                                </dl>
+                                <div class="space-y-2">
+                                    <p class="text-sm font-medium text-zinc-700 dark:text-zinc-200">IOC</p>
+                                    @if ($analysis->iocs->isEmpty())
+                                        <p class="text-sm text-zinc-500 dark:text-zinc-400">Belum ada IOC pada analisis ini.</p>
+                                    @else
+                                        <ul class="space-y-2">
+                                            @foreach ($analysis->iocs as $ioc)
+                                                <li class="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800/60">
+                                                    <p class="font-medium text-zinc-800 dark:text-zinc-100">{{ $ioc->iocType?->name ?? 'Tipe IOC' }}: {{ $ioc->value }}</p>
+                                                    @if (filled($ioc->description))
+                                                        <p class="mt-0.5 text-zinc-600 dark:text-zinc-300">{{ $ioc->description }}</p>
+                                                    @endif
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">Belum ada data analisis.</p>
+                        @endforelse
+                    </div>
+                </details>
+
+                <details class="group rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                    <summary
+                        class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-left outline-none transition hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 dark:hover:bg-zinc-800/60 [&::-webkit-details-marker]:hidden"
+                    >
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">Tindakan yang dilakukan</span>
+                        </span>
+                        <svg
+                            class="size-4 shrink-0 text-zinc-500 transition-transform duration-200 group-open:rotate-180 sm:size-5 dark:text-zinc-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path fill-rule="evenodd"
+                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </summary>
+                    <div class="space-y-3 border-t border-zinc-200 p-4 dark:border-zinc-700 sm:p-5">
+                        @forelse ($detailTicket->responseActions as $action)
+                            <div class="rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-700">
+                                <p class="font-medium text-zinc-900 dark:text-zinc-100">
+                                    {{ ucfirst((string) $action->action_type) }} oleh {{ $action->performer?->name ?? '—' }}
+                                </p>
+                                <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ $action->created_at?->format('d M Y H:i') ?? '—' }}</p>
+                                <p class="mt-2 whitespace-pre-wrap text-zinc-700 dark:text-zinc-200">{{ $action->description }}</p>
+                            </div>
+                        @empty
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">Belum ada catatan tindakan respons.</p>
+                        @endforelse
+                    </div>
+                </details>
 
                 @can('verifyReport', $detailTicket)
                     <flux:card class="space-y-4 border-dashed border-amber-200 p-4 sm:p-5 dark:border-amber-800/50">
@@ -507,8 +790,12 @@
                                     <flux:button
                                         type="button"
                                         variant="danger"
-                                        wire:click="rejectTicketReport"
-                                        wire:confirm="Laporan akan ditolak dan tiket ditutup untuk alur ini. Lanjutkan?"
+                                        @click="openConfirm({
+                                            title: 'Tolak laporan?',
+                                            message: 'Laporan akan ditolak dan tiket ditutup untuk alur ini. Lanjutkan?',
+                                            variant: 'danger',
+                                            action: async () => { await $wire.rejectTicketReport(); }
+                                        })"
                                         wire:loading.attr="disabled"
                                     >
                                         <span wire:loading.remove wire:target="rejectTicketReport">Konfirmasi tolak laporan</span>
@@ -520,37 +807,113 @@
                     </flux:card>
                 @endcan
 
-                @can('assign', $detailTicket)
-                    <flux:card class="space-y-4 border-dashed p-4 sm:p-5">
-                        <flux:heading size="lg">Tugaskan ke analis</flux:heading>
-                        <flux:subheading>Pilih analis utama untuk penanganan tiket ini.</flux:subheading>
-                        <form wire:submit.prevent="assignAnalyst" class="space-y-4" wire:key="assign-analyst-{{ $detailTicket->public_id }}-{{ $detailTicket->report_status }}">
-                            <div class="space-y-2" wire:key="assign-analyst-field-{{ $detailTicket->public_id }}">
-                                <flux:select
-                                    label="Analis"
-                                    description="Pilih dari daftar (nama dan email). Analis yang dipilih menjadi penanggung jawab utama penanganan tiket."
-                                    wire:model.live="assignAnalystUserId"
-                                    icon="user"
-                                >
-                                    <option value="" wire:key="assign-analyst-empty">Pilih analis…</option>
-                                    @foreach ($analysts as $analyst)
-                                        <flux:select.option value="{{ $analyst->id }}">
-                                            {{ $analyst->name }} — {{ $analyst->email }}
-                                        </flux:select.option>
-                                    @endforeach
-                                </flux:select>
+                @if ($readyForCoordinatorReassign)
+                    @canany(['assign', 'assignResponderHandoff'], $detailTicket)
+                        <flux:card class="space-y-4 border-dashed border-sky-200 p-4 sm:p-5 dark:border-sky-800/50">
+                            <flux:heading size="lg">Penugasan ulang</flux:heading>
+                            <flux:subheading>Pilih tujuan penugasan ulang. Hanya satu panel form aktif pada satu waktu.</flux:subheading>
+                            <div class="flex flex-wrap items-center gap-2">
+                                @can('assign', $detailTicket)
+                                    <flux:button type="button" variant="{{ $reassignMode === 'analyst' ? 'primary' : 'ghost' }}" wire:click="showReassignAnalyst">
+                                        Assign kembali ke analis
+                                    </flux:button>
+                                @endcan
+                                @can('assignResponderHandoff', $detailTicket)
+                                    <flux:button type="button" variant="{{ $reassignMode === 'responder' ? 'primary' : 'ghost' }}" wire:click="showReassignResponder">
+                                        Assign kembali ke responder
+                                    </flux:button>
+                                @endcan
                             </div>
-                            <div class="flex justify-end gap-2">
-                                <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
-                                    <span wire:loading.remove wire:target="assignAnalyst">Tugaskan</span>
-                                    <span wire:loading wire:target="assignAnalyst">Menyimpan…</span>
-                                </flux:button>
-                            </div>
-                        </form>
-                    </flux:card>
-                @endcan
 
-                @can('assignResponderHandoff', $detailTicket)
+                            @if ($reassignMode === 'analyst')
+                                @can('assign', $detailTicket)
+                                    <form wire:submit.prevent="assignAnalyst" class="space-y-4" wire:key="assign-analyst-{{ $detailTicket->public_id }}-{{ $detailTicket->report_status }}">
+                                        <div class="space-y-2" wire:key="assign-analyst-field-{{ $detailTicket->public_id }}">
+                                            <flux:select
+                                                label="Analis"
+                                                description="Pilih dari daftar (nama dan email). Analis yang dipilih menjadi penanggung jawab utama penanganan tiket."
+                                                wire:model.live="assignAnalystUserId"
+                                                icon="user"
+                                            >
+                                                <option value="" wire:key="assign-analyst-empty">Pilih analis…</option>
+                                                @foreach ($analysts as $analyst)
+                                                    <flux:select.option value="{{ $analyst->id }}">
+                                                        {{ $analyst->name }} — {{ $analyst->email }}
+                                                    </flux:select.option>
+                                                @endforeach
+                                            </flux:select>
+                                        </div>
+                                        <div class="flex justify-end gap-2">
+                                            <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                                                <span wire:loading.remove wire:target="assignAnalyst">Tugaskan</span>
+                                                <span wire:loading wire:target="assignAnalyst">Menyimpan…</span>
+                                            </flux:button>
+                                        </div>
+                                    </form>
+                                @endcan
+                            @elseif ($reassignMode === 'responder')
+                                @can('assignResponderHandoff', $detailTicket)
+                                    <form wire:submit.prevent="assignHandoffResponder" class="space-y-4" wire:key="assign-responder-{{ $detailTicket->public_id }}">
+                                        <div class="space-y-2">
+                                            <flux:select
+                                                label="Responder"
+                                                wire:model.live="assignResponderUserId"
+                                                icon="user"
+                                            >
+                                                <option value="">Pilih responder…</option>
+                                                @foreach ($responders as $responderUser)
+                                                    <flux:select.option value="{{ $responderUser->id }}">
+                                                        {{ $responderUser->name }} — {{ $responderUser->email }}
+                                                    </flux:select.option>
+                                                @endforeach
+                                            </flux:select>
+                                            @error('assignResponderUserId')
+                                                <p class="text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                        <div class="flex justify-end gap-2">
+                                            <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                                                <span wire:loading.remove wire:target="assignHandoffResponder">Tugaskan responder</span>
+                                                <span wire:loading wire:target="assignHandoffResponder">Menyimpan…</span>
+                                            </flux:button>
+                                        </div>
+                                    </form>
+                                @endcan
+                            @endif
+                        </flux:card>
+                    @endcanany
+                @else
+                    @can('assign', $detailTicket)
+                        <flux:card class="space-y-4 border-dashed p-4 sm:p-5">
+                            <flux:heading size="lg">Tugaskan ke analis</flux:heading>
+                            <flux:subheading>Pilih analis utama untuk penanganan tiket ini.</flux:subheading>
+                            <form wire:submit.prevent="assignAnalyst" class="space-y-4" wire:key="assign-analyst-{{ $detailTicket->public_id }}-{{ $detailTicket->report_status }}">
+                                <div class="space-y-2" wire:key="assign-analyst-field-{{ $detailTicket->public_id }}">
+                                    <flux:select
+                                        label="Analis"
+                                        description="Pilih dari daftar (nama dan email). Analis yang dipilih menjadi penanggung jawab utama penanganan tiket."
+                                        wire:model.live="assignAnalystUserId"
+                                        icon="user"
+                                    >
+                                        <option value="" wire:key="assign-analyst-empty">Pilih analis…</option>
+                                        @foreach ($analysts as $analyst)
+                                            <flux:select.option value="{{ $analyst->id }}">
+                                                {{ $analyst->name }} — {{ $analyst->email }}
+                                            </flux:select.option>
+                                        @endforeach
+                                    </flux:select>
+                                </div>
+                                <div class="flex justify-end gap-2">
+                                    <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                                        <span wire:loading.remove wire:target="assignAnalyst">Tugaskan</span>
+                                        <span wire:loading wire:target="assignAnalyst">Menyimpan…</span>
+                                    </flux:button>
+                                </div>
+                            </form>
+                        </flux:card>
+                    @endcan
+
+                    @can('assignResponderHandoff', $detailTicket)
                         <flux:card class="space-y-4 border-dashed border-sky-200 p-4 sm:p-5 dark:border-sky-800/50">
                             <flux:heading size="lg">Handoff ke responder</flux:heading>
                             <flux:subheading>Setelah analisis tersedia, tugaskan pengguna dengan izin penanganan respons sebagai penanggung jawab utama.</flux:subheading>
@@ -580,22 +943,83 @@
                                 </div>
                             </form>
                         </flux:card>
+                    @endcan
+                @endif
+
+                @can('close', $detailTicket)
+                    @if (
+                        $detailTicket->status === \App\Models\Ticket::STATUS_ON_PROGRESS
+                        && $detailTicket->sub_status === \App\Models\Ticket::SUB_STATUS_RESOLUTION
+                        && $detailTicket->report_status === \App\Models\Ticket::REPORT_STATUS_VERIFIED
+                        && $detailTicket->report_is_valid === true
+                    )
+                        <flux:card class="space-y-4 border-dashed border-green-200 p-4 sm:p-5 dark:border-green-900/40">
+                            <flux:heading size="lg">Close ticket</flux:heading>
+                            <flux:subheading>Menutup tiket setelah penanganan divalidasi oleh koordinator.</flux:subheading>
+                            <div class="flex flex-wrap justify-end gap-2">
+                                <flux:button
+                                    type="button"
+                                    variant="danger"
+                                    @click="openConfirm({
+                                        title: 'Tutup tiket?',
+                                        message: 'Tiket akan ditutup. Lanjutkan?',
+                                        variant: 'danger',
+                                        action: async () => { await $wire.closeTicketByCoordinator(); }
+                                    })"
+                                    wire:loading.attr="disabled"
+                                >
+                                    <span wire:loading.remove wire:target="closeTicketByCoordinator">Close ticket</span>
+                                    <span wire:loading wire:target="closeTicketByCoordinator">Memproses…</span>
+                                </flux:button>
+                            </div>
+                        </flux:card>
+                    @endif
                 @endcan
 
-                @can('reopenResponseRecording', $detailTicket)
-                    <flux:card class="space-y-4 border-dashed border-violet-200 p-4 sm:p-5 dark:border-violet-900/40">
-                        <flux:heading size="lg">Buka kembali pencatatan tindakan</flux:heading>
-                        <flux:subheading>Tiket berada di fase Resolution (selesai ditangani). Jika responder perlu mencatat tindakan tambahan, kembalikan sub-status ke Response. Responder yang ter-tugaskan akan melihat form catatan di halaman penanganan.</flux:subheading>
+                @can('reopenClosed', $detailTicket)
+                    <flux:card class="space-y-4 border-dashed border-red-200 p-4 sm:p-5 dark:border-red-900/40">
+                        <flux:heading size="lg">Buka kembali tiket (Closed)</flux:heading>
+                        <flux:subheading>Masukkan alasan reopen (wajib, minimal 15 karakter). Alasan akan tercatat pada audit.</flux:subheading>
+                        <flux:textarea
+                            wire:model="reopenReason"
+                            rows="4"
+                            label="Alasan reopen"
+                            placeholder="Jelaskan mengapa tiket dibuka kembali untuk penanganan lanjutan."
+                        />
+                        @error('reopenReason')
+                            <p class="text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                         <div class="flex flex-wrap justify-end gap-2">
                             <flux:button
                                 type="button"
                                 variant="primary"
-                                wire:click="reopenResponseRecording"
-                                wire:confirm="Kembalikan tiket ke fase Response agar responder dapat menambah catatan tindakan?"
+                                @click="openConfirm({
+                                    title: 'Buka kembali tiket?',
+                                    message: 'Tiket akan dibuka kembali untuk fase Response. Lanjutkan?',
+                                    variant: 'primary',
+                                    action: async () => { await $wire.reopenClosedByCoordinator(); }
+                                })"
                                 wire:loading.attr="disabled"
                             >
-                                <span wire:loading.remove wire:target="reopenResponseRecording">Buka kembali fase respons</span>
-                                <span wire:loading wire:target="reopenResponseRecording">Memproses…</span>
+                                <span wire:loading.remove wire:target="reopenClosedByCoordinator">Buka kembali</span>
+                                <span wire:loading wire:target="reopenClosedByCoordinator">Memproses…</span>
+                            </flux:button>
+                        </div>
+                    </flux:card>
+                @endcan
+
+                @can('manageIncidentReport', $detailTicket)
+                    <flux:card class="space-y-3 border-dashed border-zinc-200 p-4 sm:p-5 dark:border-zinc-700/50">
+                        <flux:heading size="lg">Laporan koordinator</flux:heading>
+                        <flux:subheading>Kelola dan simpan draft laporan, lalu lakukan export print-only.</flux:subheading>
+                        <div class="flex flex-wrap justify-end gap-2">
+                            <flux:button
+                                type="button"
+                                href="{{ route('tickets.reports.edit', ['ticket' => $detailTicket]) }}"
+                                variant="primary"
+                                wire:navigate
+                            >
+                                Kelola laporan
                             </flux:button>
                         </div>
                     </flux:card>
@@ -609,8 +1033,6 @@
     ui-modal::backdrop,
     dialog::backdrop {
         background-color: rgba(24, 24, 27, 0.5) !important;
-        backdrop-filter: blur(5px) !important;
-        -webkit-backdrop-filter: blur(5px) !important;
     }
 
     dialog[data-modal="ticket-create-pic-modal"] {
@@ -619,7 +1041,14 @@
     }
 
     dialog[data-modal="ticket-detail-modal"] {
-        max-width: 900px !important;
-        width: 90vw !important;
+        max-width: 1200px !important;
+        width: 96vw !important;
+        overflow-x: hidden !important;
+    }
+
+    .confirm-open > :not(.confirm-overlay) {
+        filter: blur(2px) brightness(0.45);
+        pointer-events: none;
+        user-select: none;
     }
 </style>

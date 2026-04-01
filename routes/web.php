@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TicketEvidenceController;
+use App\Http\Controllers\TicketReportImageController;
 use App\Livewire\Pages\Admin\IncidentCategories\IndexPage as AdminIncidentCategoriesIndexPage;
 use App\Livewire\Pages\Admin\Organizations\IndexPage as AdminOrganizationsIndexPage;
 use App\Livewire\Pages\Admin\Roles\IndexPage as AdminRolesIndexPage;
@@ -9,9 +10,11 @@ use App\Livewire\Pages\Admin\Users\IndexPage as AdminUsersIndexPage;
 use App\Livewire\Pages\DashboardPage;
 use App\Livewire\Pages\ProfilePage;
 use App\Livewire\Pages\Tickets\IndexPage as TicketsIndexPage;
+use App\Livewire\Pages\Tickets\TicketCoordinatorReportEditorPage;
 use App\Livewire\Pages\Tickets\TicketAnalysisPage;
 use App\Livewire\Pages\Tickets\TicketRespondPage;
 use App\Models\Ticket;
+use App\Models\TicketReport;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
@@ -57,6 +60,29 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->route('tickets.index', ['ticket' => $ticket->public_id]);
     })->name('tickets.show');
+
+    Route::get('/tickets/{ticket}/reports/edit', TicketCoordinatorReportEditorPage::class)
+        ->middleware(['can:manageIncidentReport,ticket'])
+        ->name('tickets.reports.edit');
+
+    Route::get('/tickets/{ticket}/reports/{report}/print', function (Ticket $ticket, TicketReport $report) {
+        abort_unless((int) $report->ticket_id === (int) $ticket->id, 404);
+
+        Gate::authorize('manageIncidentReport', $ticket);
+
+        return view('tickets.reports.print', [
+            'ticket' => $ticket,
+            'ticketReport' => $report,
+        ]);
+    })->name('tickets.reports.print');
+
+    Route::post('/tickets/{ticket}/reports/images', [TicketReportImageController::class, 'store'])
+        ->middleware(['can:manageIncidentReport,ticket'])
+        ->name('tickets.reports.images.store');
+    Route::get('/tickets/{ticket}/reports/images/{path}', [TicketReportImageController::class, 'show'])
+        ->where('path', '.*')
+        ->middleware(['can:manageIncidentReport,ticket'])
+        ->name('tickets.reports.images.show');
 
     Route::prefix('dashboard/admin')->name('admin.')->group(function () {
         Route::get('/users', AdminUsersIndexPage::class)

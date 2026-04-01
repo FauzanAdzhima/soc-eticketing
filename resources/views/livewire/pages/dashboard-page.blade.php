@@ -124,10 +124,11 @@
 
     @if (! empty($showWelcomeToast))
         <div
+            popover="manual"
             x-data="{
                 open: true,
-                totalMs: 12000,
-                remainingMs: 12000,
+                totalMs: 5000,
+                remainingMs: 5000,
                 tickMs: 50,
                 timer: null,
                 secondsLeft() {
@@ -143,41 +144,44 @@
                             this.remainingMs = 0;
                             clearInterval(this.timer);
                             this.timer = null;
-                            this.open = false;
+                            this.close();
                         }
                     }, this.tickMs);
                 },
                 close() {
+                    this.open = false;
                     if (this.timer) {
                         clearInterval(this.timer);
                         this.timer = null;
                     }
-                    this.open = false;
+                    if (typeof this.$el.hidePopover === 'function') {
+                        this.$el.hidePopover();
+                    }
                 },
             }"
-            x-init="start()"
-            x-show="open"
-            x-transition.opacity.duration.200ms
+            x-init="$nextTick(() => { if (typeof $el.showPopover === 'function') { $el.showPopover(); } start(); })"
             x-on:livewire:navigating.window="close()"
+            x-show="open"
+            x-cloak
             role="status"
-            class="pointer-events-auto fixed top-18.5 right-4 z-50 max-w-md w-[min(100%,calc(100vw-2rem))]"
+            class="app-toast-popover pointer-events-auto border-0 bg-transparent p-0 shadow-none"
         >
             <div :style="{ opacity: fadeOpacity() }">
                 <div
-                    class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 shadow-lg dark:border-emerald-700/40 dark:bg-emerald-900/20 dark:text-emerald-300"
+                    class="rounded-lg border border-emerald-700 bg-emerald-600 px-4 py-3 text-sm text-emerald-50 shadow-lg dark:border-emerald-400 dark:bg-emerald-500 dark:text-white"
                 >
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0 flex-1">
                             <span>Selamat datang di dashboard SOC eTicketing.</span>
                             <span
-                                class="mt-1.5 block text-xs font-medium tabular-nums text-emerald-800/90 dark:text-emerald-200/90"
+                                class="mt-1.5 block text-xs font-medium tabular-nums text-emerald-100/90 dark:text-emerald-100/90"
                                 x-text="'Menutup otomatis dalam ' + secondsLeft() + ' dtk'"
                             ></span>
                         </div>
                         <button
                             type="button"
-                            @click="close()"
-                            class="shrink-0 text-base leading-none text-emerald-700/70 hover:text-emerald-900 dark:text-emerald-300/70 dark:hover:text-emerald-200"
+                            @click.stop.prevent="close()"
+                            class="shrink-0 text-base leading-none text-emerald-100/90 hover:text-white dark:text-emerald-100/90 dark:hover:text-white"
                             aria-label="Tutup"
                         >
                             &times;

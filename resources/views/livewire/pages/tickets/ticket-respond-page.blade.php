@@ -1,22 +1,113 @@
-<div class="space-y-6">
+<div
+    class="space-y-6"
+    x-data="{
+        confirmTitle: 'Konfirmasi',
+        confirmMessage: '',
+        confirmVariant: 'primary',
+        confirmBusy: false,
+        confirmAction: null,
+        showConfirm: false,
+        onConfirmDialogClose() {
+            this.confirmBusy = false;
+            this.confirmAction = null;
+            this.confirmMessage = '';
+            this.confirmTitle = 'Konfirmasi';
+            this.showConfirm = false;
+        },
+        openConfirm({ title = 'Konfirmasi', message = '', variant = 'primary', action = null }) {
+            this.confirmTitle = title;
+            this.confirmMessage = message;
+            this.confirmVariant = variant;
+            this.confirmAction = action;
+            this.confirmBusy = false;
+            this.showConfirm = true;
+        },
+        closeConfirm() {
+            this.onConfirmDialogClose();
+        },
+        async runConfirm() {
+            if (!this.confirmAction || this.confirmBusy) return;
+            this.confirmBusy = true;
+            try {
+                await this.confirmAction();
+            } finally {
+                this.closeConfirm();
+            }
+        },
+    }"
+>
+    <div
+        x-show="showConfirm"
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm dark:bg-zinc-950/60"
+        @keydown.escape.window="!confirmBusy && closeConfirm()"
+    >
+        <div class="m-4 w-[min(100vw-2rem,32rem)] max-w-lg rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-base font-semibold text-zinc-900 dark:text-zinc-100" x-text="confirmTitle"></p>
+                    <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300" x-text="confirmMessage"></p>
+                </div>
+                <button
+                    type="button"
+                    class="shrink-0 text-xl leading-none text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                    aria-label="Tutup"
+                    @click="!confirmBusy && closeConfirm()"
+                >
+                    &times;
+                </button>
+            </div>
+            <div class="mt-5 flex justify-end gap-2">
+                <flux:button type="button" variant="ghost" @click="!confirmBusy && closeConfirm()" x-bind:disabled="confirmBusy">
+                    Batal
+                </flux:button>
+                <flux:button
+                    type="button"
+                    variant="primary"
+                    @click="runConfirm()"
+                    x-show="confirmVariant !== 'danger'"
+                    x-bind:disabled="confirmBusy"
+                >
+                    <span x-show="!confirmBusy">Konfirmasi</span>
+                    <span x-show="confirmBusy">Memproses…</span>
+                </flux:button>
+                <flux:button
+                    type="button"
+                    variant="danger"
+                    @click="runConfirm()"
+                    x-show="confirmVariant === 'danger'"
+                    x-bind:disabled="confirmBusy"
+                >
+                    <span x-show="!confirmBusy">Konfirmasi</span>
+                    <span x-show="confirmBusy">Memproses…</span>
+                </flux:button>
+            </div>
+        </div>
+    </div>
     @if (session()->has('toast_success'))
-        <div x-data="{ open: true }" x-show="open" x-transition
-            class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-700/40 dark:bg-emerald-900/20 dark:text-emerald-300">
+        <div x-data="{ open: true }"
+            x-init="window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => open = false, 5000)"
+            x-show="open"
+            class="rounded-lg border border-emerald-300 bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100"
+            role="status">
             <div class="flex items-start justify-between gap-3">
                 <span>{{ session('toast_success') }}</span>
                 <button type="button" @click="open = false"
-                    class="text-base leading-none text-emerald-700/70 hover:text-emerald-900 dark:text-emerald-300/70 dark:hover:text-emerald-200"
+                    class="text-base leading-none"
                     aria-label="Tutup">&times;</button>
             </div>
         </div>
     @endif
     @if (session()->has('toast_error'))
-        <div x-data="{ open: true }" x-show="open" x-transition
-            class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
+        <div x-data="{ open: true }"
+            x-init="window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => open = false, 5000)"
+            x-show="open"
+            class="rounded-lg border border-red-300 bg-red-100 px-4 py-3 text-sm text-red-900 dark:border-red-700 dark:bg-red-900/40 dark:text-red-100"
+            role="status">
             <div class="flex items-start justify-between gap-3">
                 <span>{{ session('toast_error') }}</span>
                 <button type="button" @click="open = false"
-                    class="text-base leading-none text-red-700/70 hover:text-red-900 dark:text-red-300/70 dark:hover:text-red-200"
+                    class="text-base leading-none"
                     aria-label="Tutup">&times;</button>
             </div>
         </div>
@@ -214,8 +305,17 @@
             <flux:heading size="lg">Selesaikan fase respons</flux:heading>
             <flux:text class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Promosikan tiket ke sub-status Resolution setelah tindakan mencukupi. Penutupan tiket tetap oleh koordinator.</flux:text>
             <div class="mt-4 flex justify-end">
-                <flux:button type="button" variant="primary" wire:click="markResolved" wire:confirm="Tandai penanganan respons selesai dan ubah sub-status ke Resolution?"
-                    wire:loading.attr="disabled">
+                <flux:button
+                    type="button"
+                    variant="primary"
+                    @click="openConfirm({
+                        title: 'Tandai selesai (Resolution)?',
+                        message: 'Tandai penanganan respons selesai dan ubah sub-status ke Resolution?',
+                        variant: 'primary',
+                        action: async () => { await $wire.markResolved(); }
+                    })"
+                    wire:loading.attr="disabled"
+                >
                     <span wire:loading.remove wire:target="markResolved">Tandai selesai (Resolution)</span>
                     <span wire:loading wire:target="markResolved">Memproses…</span>
                 </flux:button>

@@ -1,23 +1,19 @@
 <div class="space-y-6">
     @if (session()->has('toast_success'))
-        <div x-data="{ open: true }" x-show="open" x-transition
-            class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-700/40 dark:bg-emerald-900/20 dark:text-emerald-300">
+        <div x-data="{ open: true }" x-init="window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => open = false, 5000)" x-show="open"
+            class="rounded-lg border border-emerald-300 bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100">
             <div class="flex items-start justify-between gap-3">
                 <span>{{ session('toast_success') }}</span>
-                <button type="button" @click="open = false"
-                    class="text-base leading-none text-emerald-700/70 hover:text-emerald-900 dark:text-emerald-300/70 dark:hover:text-emerald-200"
-                    aria-label="Tutup">&times;</button>
+                <button type="button" @click="open = false" class="text-base leading-none" aria-label="Tutup">&times;</button>
             </div>
         </div>
     @endif
     @if (session()->has('toast_error'))
-        <div x-data="{ open: true }" x-show="open" x-transition
-            class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
+        <div x-data="{ open: true }" x-init="window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => open = false, 5000)" x-show="open"
+            class="rounded-lg border border-red-300 bg-red-100 px-4 py-3 text-sm text-red-900 dark:border-red-700 dark:bg-red-900/40 dark:text-red-100">
             <div class="flex items-start justify-between gap-3">
                 <span>{{ session('toast_error') }}</span>
-                <button type="button" @click="open = false"
-                    class="text-base leading-none text-red-700/70 hover:text-red-900 dark:text-red-300/70 dark:hover:text-red-200"
-                    aria-label="Tutup">&times;</button>
+                <button type="button" @click="open = false" class="text-base leading-none" aria-label="Tutup">&times;</button>
             </div>
         </div>
     @endif

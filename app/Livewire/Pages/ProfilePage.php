@@ -5,8 +5,10 @@ namespace App\Livewire\Pages;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+#[Layout('layouts.layout-main')]
 class ProfilePage extends Component
 {
     public bool $showEditProfileModal = false;
