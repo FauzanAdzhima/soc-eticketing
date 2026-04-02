@@ -72,4 +72,19 @@
             <p class="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">Tidak ada menu yang tersedia.</p>
         @endforelse
     </nav>
+
+    <div class="border-t border-zinc-200 p-2 dark:border-zinc-700">
+        <div x-data="{ hover: false }" @mouseenter="hover = true" @mouseleave="hover = false" class="relative">
+            <div x-show="!sidebarCollapsed" x-cloak>
+                <x-theme-toggle class="w-full justify-center" />
+            </div>
+            <div x-show="sidebarCollapsed" x-cloak class="flex justify-center">
+                <x-theme-toggle compact />
+            </div>
+            <span x-cloak x-show="sidebarCollapsed && hover" x-transition
+                class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white shadow-md lg:block dark:bg-zinc-700">
+                Toggle tema
+            </span>
+        </div>
+    </div>
 </aside>

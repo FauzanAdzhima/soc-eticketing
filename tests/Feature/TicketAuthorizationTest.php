@@ -26,7 +26,7 @@ class TicketAuthorizationTest extends TestCase
 
         $this->seed(RoleSeeder::class);
         $this->organization = Organization::create(['name' => 'Diskominfo']);
-        $this->category = IncidentCategory::create(['name' => 'Phishing']);
+        $this->category = IncidentCategory::create(['name' => 'Email Phishing']);
     }
 
     public function test_guest_can_create_ticket_via_public_endpoint(): void

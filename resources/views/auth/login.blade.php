@@ -10,8 +10,12 @@
     @fluxAppearance
 </head>
 
-<body class="min-h-screen bg-zinc-950 antialiased">
+<body class="min-h-screen bg-zinc-100 antialiased dark:bg-zinc-950">
     <div class="flex min-h-screen flex-row">
+        <div class="fixed right-4 top-4 z-50">
+            <x-theme-toggle compact />
+        </div>
+
         <section class="relative hidden w-2/3 lg:block">
             <div class="absolute inset-0 bg-cover bg-center"
                 style="background-image: url('/images/indonesia-flag-texture.jpg');">
@@ -19,10 +23,10 @@
             </div>
         </section>
 
-        <section class="flex w-full flex-col items-center justify-center bg-zinc-900 px-8 lg:w-1/3">
+        <section class="flex w-full flex-col items-center justify-center bg-white px-8 dark:bg-zinc-900 lg:w-1/3">
             <div class="w-full max-w-sm space-y-8">
                 <a href="{{ route('home') }}"
-                    class="inline-flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-white">
+                    class="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white">
                     <span aria-hidden="true">&larr;</span>
                     <span>Kembali</span>
                 </a>
@@ -32,7 +36,7 @@
                 <div class="flex flex-col items-center space-y-4">
                     <img src="{{ asset('images/logo_csirt.webp') }}" alt="CSIRT Logo" class="h-24 w-auto">
                     <div class="text-center">
-                        <p class="text-sm text-zinc-300">Login sesuai email dan password</p>
+                        <p class="text-sm text-zinc-600 dark:text-zinc-300">Login sesuai email dan password</p>
                     </div>
                 </div>
 
@@ -51,7 +55,7 @@
                     </flux:button>
                 </form>
 
-                <div class="mt-12 text-center text-xs text-zinc-500">
+                <div class="mt-12 text-center text-xs text-zinc-500 dark:text-zinc-500">
                     © 2026 - Kepriprov-CSIRT
                 </div>
             </div>

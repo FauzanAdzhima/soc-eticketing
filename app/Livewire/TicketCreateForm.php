@@ -138,6 +138,25 @@ class TicketCreateForm extends Component
         return '0.0';
     }
 
+    public function removeEvidence(int $index): void
+    {
+        if (!array_key_exists($index, $this->evidenceFiles)) {
+            return;
+        }
+
+        $file = $this->evidenceFiles[$index];
+        if (is_object($file) && method_exists($file, 'delete')) {
+            try {
+                $file->delete();
+            } catch (\Throwable $e) {
+                // Ignore temporary file deletion failure.
+            }
+        }
+
+        unset($this->evidenceFiles[$index]);
+        $this->evidenceFiles = array_values($this->evidenceFiles);
+    }
+
     protected function defaultFormData(): array
     {
         return [
@@ -167,7 +186,7 @@ class TicketCreateForm extends Component
             'formData.incident_time' => 'required|date',
             'formData.incident_description' => 'required|string',
             'evidenceFiles' => 'nullable|array',
-            'evidenceFiles.*' => 'file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,csv,txt,zip,rar',
+            'evidenceFiles.*' => 'image|max:5120|mimes:jpg,jpeg,png,gif,webp',
         ];
     }
 }

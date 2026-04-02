@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "../../vendor/livewire/flux/dist/flux.css";
 
@@ -9,6 +10,15 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 [x-cloak] { display: none !important; }
+
+.font-oswald {
+    font-family: "Oswald", sans-serif;
+}
+
+.dotted-bg {
+    background-image: radial-gradient(rgb(59 130 246 / 0.35) 1.5px, transparent 1.5px);
+    background-size: 12px 12px;
+}
 
 /*
  * Popover API toasts sit in the browser top layer and appear above native <dialog>

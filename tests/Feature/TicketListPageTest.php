@@ -33,7 +33,7 @@ class TicketListPageTest extends TestCase
 
         $this->seed(RoleSeeder::class);
         $this->organization = Organization::create(['name' => 'Diskominfo']);
-        $this->category = IncidentCategory::create(['name' => 'Phishing']);
+        $this->category = IncidentCategory::create(['name' => 'Email Phishing']);
     }
 
     public function test_guest_is_redirected_from_ticket_list(): void
