@@ -2,15 +2,25 @@
 <html lang="id">
 
 <head>
+    <script>
+        (function() {
+            try {
+                var stored = localStorage.getItem('theme');
+                var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var useDark = stored === 'dark' || ((stored === null || stored === 'system') && prefersDark);
+
+                document.documentElement.classList.toggle('dark', !!useDark);
+            } catch (e) {}
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - CSIRT</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @fluxAppearance
 </head>
 
-<body class="min-h-screen bg-zinc-100 antialiased dark:bg-zinc-950">
+<body class="min-h-screen bg-background antialiased text-foreground">
     <div class="flex min-h-screen flex-row">
         <div class="fixed right-4 top-4 z-50">
             <x-theme-toggle compact />
@@ -23,10 +33,10 @@
             </div>
         </section>
 
-        <section class="flex w-full flex-col items-center justify-center bg-white px-8 dark:bg-zinc-900 lg:w-1/3">
+        <section class="flex w-full flex-col items-center justify-center bg-surface px-8 lg:w-1/3">
             <div class="w-full max-w-sm space-y-8">
                 <a href="{{ route('home') }}"
-                    class="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white">
+                    class="inline-flex items-center gap-2 text-sm font-medium text-foreground-secondary hover:text-foreground">
                     <span aria-hidden="true">&larr;</span>
                     <span>Kembali</span>
                 </a>
@@ -36,7 +46,7 @@
                 <div class="flex flex-col items-center space-y-4">
                     <img src="{{ asset('images/logo_csirt.webp') }}" alt="CSIRT Logo" class="h-24 w-auto">
                     <div class="text-center">
-                        <p class="text-sm text-zinc-600 dark:text-zinc-300">Login sesuai email dan password</p>
+                        <p class="text-sm text-foreground-secondary">Login sesuai email dan password</p>
                     </div>
                 </div>
 
@@ -55,7 +65,7 @@
                     </flux:button>
                 </form>
 
-                <div class="mt-12 text-center text-xs text-zinc-500 dark:text-zinc-500">
+                <div class="mt-12 text-center text-xs text-muted-foreground">
                     © 2026 - Kepriprov-CSIRT
                 </div>
             </div>

@@ -21,11 +21,11 @@
     ];
 @endphp
 
-<aside class="flex h-full w-full flex-col border-r border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+<aside class="flex h-full w-full flex-col border-r border-border bg-surface">
     <div class="p-4">
-        <h2 class="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400" x-show="!sidebarCollapsed"
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground" x-show="!sidebarCollapsed"
             x-cloak>Navigation</h2>
-        <h2 class="text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+        <h2 class="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground"
             x-show="sidebarCollapsed" x-cloak>Nav</h2>
     </div>
 
@@ -33,20 +33,24 @@
         @forelse ($menus as $index => $menu)
             @if ($index > 0 && ($menu['group'] ?? 'core') !== ($menus[$index - 1]['group'] ?? 'core'))
                 <div role="separator" aria-hidden="true"
-                    class="my-2 border-t border-zinc-200 dark:border-zinc-700"></div>
+                    class="my-2 border-t border-border"></div>
             @endif
             @if (blank($menu['permission']))
                 <a href="{{ route($menu['route'], $menu['route_query'] ?? []) }}"
                     x-data="{ hover: false }" @mouseenter="hover = true" @mouseleave="hover = false"
                     @class([
                         'relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition',
-                        'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900' => $this->isActiveForMenu($menu),
-                        'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800' => !$this->isActiveForMenu($menu),
+                        'bg-primary text-primary-foreground' => $this->isActiveForMenu($menu),
+                        'text-foreground-secondary hover:bg-muted' => !$this->isActiveForMenu($menu),
                     ])>
-                    <span class="flex w-8 justify-center text-zinc-400">{!! $iconSvgs[$menu['icon']] ?? strtoupper(substr($menu['label'], 0, 1)) !!}</span>
+                    <span @class([
+                        'flex w-8 justify-center',
+                        'text-primary-foreground' => $this->isActiveForMenu($menu),
+                        'text-muted-foreground' => !$this->isActiveForMenu($menu),
+                    ])>{!! $iconSvgs[$menu['icon']] ?? strtoupper(substr($menu['label'], 0, 1)) !!}</span>
                     <span class="truncate" x-show="!sidebarCollapsed" x-cloak>{{ $menu['label'] }}</span>
                     <span x-cloak x-show="sidebarCollapsed && hover" x-transition
-                        class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white shadow-md lg:block dark:bg-zinc-700">
+                        class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs font-medium text-foreground shadow-md lg:block">
                         {{ $menu['label'] }}
                     </span>
                 </a>
@@ -56,24 +60,28 @@
                         x-data="{ hover: false }" @mouseenter="hover = true" @mouseleave="hover = false"
                         @class([
                             'relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition',
-                            'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900' => $this->isActiveForMenu($menu),
-                            'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800' => !$this->isActiveForMenu($menu),
+                            'bg-primary text-primary-foreground' => $this->isActiveForMenu($menu),
+                            'text-foreground-secondary hover:bg-muted' => !$this->isActiveForMenu($menu),
                         ])>
-                        <span class="flex w-8 justify-center text-zinc-400">{!! $iconSvgs[$menu['icon']] ?? strtoupper(substr($menu['label'], 0, 1)) !!}</span>
+                        <span @class([
+                            'flex w-8 justify-center',
+                            'text-primary-foreground' => $this->isActiveForMenu($menu),
+                            'text-muted-foreground' => !$this->isActiveForMenu($menu),
+                        ])>{!! $iconSvgs[$menu['icon']] ?? strtoupper(substr($menu['label'], 0, 1)) !!}</span>
                         <span class="truncate" x-show="!sidebarCollapsed" x-cloak>{{ $menu['label'] }}</span>
                         <span x-cloak x-show="sidebarCollapsed && hover" x-transition
-                            class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white shadow-md lg:block dark:bg-zinc-700">
+                            class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs font-medium text-foreground shadow-md lg:block">
                             {{ $menu['label'] }}
                         </span>
                     </a>
                 @endcan
             @endif
         @empty
-            <p class="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">Tidak ada menu yang tersedia.</p>
+            <p class="px-3 py-2 text-sm text-muted-foreground">Tidak ada menu yang tersedia.</p>
         @endforelse
     </nav>
 
-    <div class="border-t border-zinc-200 p-2 dark:border-zinc-700">
+    <div class="border-t border-border p-2">
         <div x-data="{ hover: false }" @mouseenter="hover = true" @mouseleave="hover = false" class="relative">
             <div x-show="!sidebarCollapsed" x-cloak>
                 <x-theme-toggle class="w-full justify-center" />
@@ -82,7 +90,7 @@
                 <x-theme-toggle compact />
             </div>
             <span x-cloak x-show="sidebarCollapsed && hover" x-transition
-                class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium text-white shadow-md lg:block dark:bg-zinc-700">
+                class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs font-medium text-foreground shadow-md lg:block">
                 Toggle tema
             </span>
         </div>

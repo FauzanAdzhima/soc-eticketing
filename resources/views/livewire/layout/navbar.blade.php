@@ -1,8 +1,9 @@
-<div class="sticky top-0 z-30 border-b border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/95">
+<div
+    class="sticky top-0 z-30 border-b border-primary-foreground/15 bg-primary px-4 py-3 text-primary-foreground shadow-sm">
     <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
             <button type="button" @click="$dispatch('toggle-sidebar-mobile')"
-                class="inline-flex rounded-md p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800 lg:hidden"
+                class="inline-flex rounded-md p-2 text-primary-foreground hover:bg-primary-foreground/10 lg:hidden"
                 aria-label="Toggle sidebar mobile">
                 <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
@@ -12,7 +13,7 @@
             </button>
 
             <button type="button" @click="$dispatch('toggle-sidebar')"
-                class="hidden rounded-md p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800 lg:inline-flex"
+                class="hidden rounded-md p-2 text-primary-foreground hover:bg-primary-foreground/10 lg:inline-flex"
                 aria-label="Toggle sidebar collapse">
                 <svg class="h-5 w-5 transition-transform duration-300" :class="sidebarCollapsed ? 'rotate-180' : ''"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -23,8 +24,8 @@
             </button>
 
             <div>
-                <p class="text-sm text-zinc-500 dark:text-zinc-400">SOC eTicketing</p>
-                <h1 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{{ $this->userName }}</h1>
+                <p class="text-sm text-primary-foreground">SOC eTicketing</p>
+                <h1 class="text-base font-semibold text-primary-foreground">{{ $this->userName }}</h1>
             </div>
         </div>
 

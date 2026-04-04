@@ -203,6 +203,22 @@ class Ticket extends Model
     }
 
     /**
+     * Kelas Tailwind untuk pill nomor tiket di daftar (berdasarkan tingkat keparahan laporan).
+     */
+    public function incidentSeverityTicketNumberPillClasses(): string
+    {
+        $sev = strtolower(trim((string) $this->incident_severity));
+
+        return match ($sev) {
+            'low' => 'border border-sky-200/90 bg-sky-100 text-sky-950 dark:border-sky-700/60 dark:bg-sky-950/50 dark:text-sky-100',
+            'medium' => 'border border-amber-200/90 bg-amber-100 text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/45 dark:text-amber-100',
+            'high' => 'border border-orange-200/90 bg-orange-100 text-orange-950 dark:border-orange-800/55 dark:bg-orange-950/45 dark:text-orange-100',
+            'critical' => 'border border-red-200/90 bg-red-100 text-red-950 dark:border-red-800/60 dark:bg-red-950/50 dark:text-red-100',
+            default => 'border border-zinc-200 bg-zinc-100 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200',
+        };
+    }
+
+    /**
      * Badge lifecycle koordinator.
      *
      * - validated (purple): sub_status=Resolution && handling_validated_at terisi

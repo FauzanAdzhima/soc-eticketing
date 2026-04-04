@@ -4,13 +4,13 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         @foreach ($categories as $category)
             <flux:card wire:click="openTicketForm({{ $category->id }})"
-                class="cursor-pointer hover:ring-2 ring-white-500 transition-all">
+                class="cursor-pointer transition-all hover:ring-2 hover:ring-primary/40">
                 <div class="flex items-center gap-2">
                     <flux:heading>{{ $category->name }}</flux:heading>
 
                     <div class="group relative inline-flex" wire:click.stop>
                         <button type="button"
-                            class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-zinc-300 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                            class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             aria-label="Info {{ $category->name }}">
                             <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                 <path fill-rule="evenodd"
@@ -20,7 +20,7 @@
                         </button>
 
                         <div
-                            class="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-72 -translate-x-1/2 rounded-lg bg-zinc-900 px-3 py-2 text-xs text-white opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 dark:bg-zinc-700">
+                            class="pointer-events-none invisible absolute bottom-full left-1/2 z-20 mb-2 w-72 -translate-x-1/2 rounded-lg border border-border bg-surface px-3 py-2 text-xs text-foreground opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                             {{ filled($category->description) ? $category->description : 'Keterangan kategori belum tersedia.' }}
                         </div>
                     </div>
@@ -33,10 +33,10 @@
         <div class="space-y-1">
             @if ($isSuccess)
                 <div class="text-center py-10 animate-fade-in">
-                    <flux:icon.check-circle variant="solid" class="size-16 text-green-500 mx-auto" />
+                    <flux:icon.check-circle variant="solid" class="mx-auto size-16 text-success" />
                     <flux:heading size="xl" class="mt-4">Laporan Terkirim!</flux:heading>
                     <flux:subheading>Nomor Tiket Anda:</flux:subheading>
-                    <div class="mt-4 p-4 bg-zinc-100 dark:bg-zinc-800 rounded-lg font-mono text-lg font-bold select-all">
+                    <div class="mt-4 rounded-lg bg-muted p-4 font-mono text-lg font-bold select-all">
                         {{ $createdTicketNo }}
                     </div>
                     <div class="mt-8">
@@ -44,16 +44,16 @@
                     </div>
                 </div>
             @else
-                <header class="z-20 border-b border-zinc-200 bg-white px-1 pb-4 pt-1 dark:border-zinc-700 dark:bg-zinc-900">
+                <header class="z-20 border-border px-1 pb-4 pt-1">
                     <flux:heading size="xl">Form Laporan Insiden</flux:heading>
-                    <flux:subheading class="mt-2 inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-700">
+                    <flux:subheading class="mt-2 inline-flex items-center gap-2 rounded-lg border border-border bg-muted dark:bg-white/[8%] px-3 py-1 text-sm">
                         Kategori: {{ $this->selectedCategory?->name ?? '' }}
                     </flux:subheading>
-                </header>
+                </header>                
 
-                <div class="h-4"></div>
+                <flux:separator class="h-4 mb-2" />
 
-                <div class="max-h-[65vh] overflow-y-auto pr-1">
+                <div class="incident-modal-form-scroll max-h-[65vh] overflow-y-auto pr-1">
                     <form wire:submit="submitIncident" class="space-y-5 sm:space-y-6">
                     <flux:input label="Subjek Aduan" wire:model.defer="formData.title"
                         placeholder="cont: Indikasi serangan pada sistem X" required />
@@ -65,7 +65,7 @@
                         <flux:input label="No. WhatsApp/Telepon" wire:model.defer="formData.reporter_phone"
                             icon="phone" placeholder="081234567890" required />
 
-                        <div class="p-4 rounded-lg border border-zinc-700 md:col-span-2 hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+                        <div class="rounded-lg border border-border-strong p-4 md:col-span-2 hover:bg-muted/80">
                             <flux:checkbox wire:model.live="isOfficialEmployee"
                                 label="Saya adalah pegawai / ASN Pemprov Kepri" />
                         </div>
@@ -106,7 +106,7 @@
                                 placeholder="Jelaskan kronologi singkat kejadian..." rows="5" />
                         </div>
 
-                        <div class="md:col-span-2 space-y-3 border-t border-zinc-100 pt-3 dark:border-zinc-800"
+                        <div class="md:col-span-2 space-y-3 border-t border-border pt-3"
                             x-data="{ uploading: false, progress: 0 }"
                             x-on:livewire-upload-start.window="uploading = true; progress = 0"
                             x-on:livewire-upload-finish.window="uploading = false; progress = 100"
@@ -114,24 +114,24 @@
                             x-on:livewire-upload-progress.window="progress = $event.detail.progress">
                             <flux:label>Bukti Dukung (Screenshot/Foto)</flux:label>
                             <label
-                                class="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-4 py-3 text-sm text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/40">
+                                class="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 text-sm text-foreground-secondary transition hover:border-border-strong hover:bg-muted/80 hover:cursor-pointer">
                                 <span class="truncate">Drop file atau klik untuk upload (JPG, JPEG, PNG, GIF, WEBP hingga 5MB)</span>
                                 <input type="file" wire:model="evidenceFiles" multiple accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" />
                                 <span
-                                    class="shrink-0 rounded-md bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-700 dark:text-zinc-100">
+                                    class="shrink-0 rounded-md bg-muted px-3 py-1 text-xs font-medium text-foreground">
                                     Pilih File
                                 </span>
                             </label>
                             <div x-show="uploading" x-cloak class="space-y-1">
-                                <div class="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
-                                    <div class="h-full bg-blue-600 transition-all duration-150" :style="`width: ${progress}%`"></div>
+                                <div class="h-2 overflow-hidden rounded-full bg-muted">
+                                    <div class="h-full bg-primary transition-all duration-150" :style="`width: ${progress}%`"></div>
                                 </div>
-                                <p class="text-xs text-blue-600 dark:text-blue-400">
+                                <p class="text-xs text-primary">
                                     Mengunggah file... <span x-text="`${progress}%`"></span>
                                 </p>
                             </div>
                             @error('evidenceFiles.*')
-                                <span class="text-red-500 text-xs font-medium">{{ $message }}</span>
+                                <span class="text-xs font-medium text-danger">{{ $message }}</span>
                             @enderror
 
                             @if (!empty($evidenceFiles))
@@ -177,24 +177,24 @@
                                 }">
                                     @foreach ($evidenceFiles as $index => $evidence)
                                         <div wire:key="evidence-preview-{{ $index }}" role="button" tabindex="0"
-                                            class="relative flex w-full items-center gap-3 rounded-lg border border-zinc-200 p-2 pr-10 text-left transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800/40"
+                                            class="relative flex w-full items-center gap-3 rounded-lg border border-border p-2 pr-10 text-left transition hover:bg-muted/80"
                                             @click="openPreview(@js($evidence->temporaryUrl()), @js($this->evidenceOriginalName($evidence)))"
                                             @keydown.enter.prevent="openPreview(@js($evidence->temporaryUrl()), @js($this->evidenceOriginalName($evidence)))"
                                             @keydown.space.prevent="openPreview(@js($evidence->temporaryUrl()), @js($this->evidenceOriginalName($evidence)))">
                                             <span class="block">
                                                 <img src="{{ $evidence->temporaryUrl() }}" alt="Preview evidence"
-                                                    class="h-12 w-12 rounded object-cover ring-1 ring-zinc-200 dark:ring-zinc-700">
+                                                    class="h-12 w-12 rounded object-cover ring-1 ring-border">
                                             </span>
                                             <div class="min-w-0 flex-1">
-                                                <p class="truncate text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                                                <p class="truncate text-sm font-medium text-foreground">
                                                     {{ $this->evidenceOriginalName($evidence) }}
                                                 </p>
-                                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                <p class="text-xs text-muted-foreground">
                                                     {{ $this->evidenceSizeKb($evidence) }} KB
                                                 </p>
                                             </div>
                                             <button type="button"
-                                                class="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-zinc-400 transition hover:bg-red-50 hover:text-red-600 dark:text-zinc-500 dark:hover:bg-red-500/20 dark:hover:text-red-400"
+                                                class="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition hover:bg-danger/10 hover:text-danger"
                                                 wire:click.stop="removeEvidence({{ $index }})" aria-label="Hapus file">
                                                 <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                                     <path
@@ -207,10 +207,10 @@
                             @endif
                         </div>
 
-                        <div class="md:col-span-2 space-y-3 border-t border-zinc-100 dark:border-zinc-800">
+                        <div class="md:col-span-2 space-y-3 border-t border-border">
                             <flux:label>Verifikasi Keamanan (Anti-Bot)</flux:label>
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-orange-50/50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/50 rounded-xl">
-                                <div class="shrink-0 flex items-center justify-center bg-white dark:bg-zinc-800 border-2 border-orange-200 dark:border-orange-900 px-4 py-2 rounded-lg font-mono font-black text-2xl text-orange-600 tracking-widest shadow-inner">
+                            <div class="flex flex-col gap-4 rounded-xl border border-warning/30 bg-warning/10 p-4 sm:flex-row sm:items-center">
+                                <div class="flex shrink-0 items-center justify-center rounded-lg border-2 border-warning/40 bg-surface px-4 py-2 font-mono text-2xl font-black tracking-widest text-warning shadow-inner">
                                     {{ $captcha_val1 }} + {{ $captcha_val2 }}
                                 </div>
                                 <div class="flex-1">
@@ -218,13 +218,13 @@
                                 </div>
                             </div>
                             @error('captcha_answer')
-                                <span class="text-red-500 text-xs font-medium">{{ $message }}</span>
+                                <span class="text-xs font-medium text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                     </div>
 
                     <div class="md:col-span-2 mb-[10px]">
-                        <p class="text-[12px] text-zinc-500 italic">
+                        <p class="text-[12px] italic text-muted-foreground">
                             * Dengan menekan tombol Kirim, Anda menyatakan bahwa informasi yang diberikan adalah benar dan dapat dipertanggungjawabkan.
                         </p>
                     </div>
@@ -232,7 +232,7 @@
                         <div class="flex border-t pt-6">
                             <flux:spacer />
                             <flux:modal.close>
-                                <flux:button variant="ghost" class="cursor-pointer">Batal</flux:button>
+                                <flux:button variant="outline" class="cursor-pointer">Batal</flux:button>
                             </flux:modal.close>
                             <flux:button type="submit" variant="primary" class="ml-3 cursor-pointer" wire:loading.attr="disabled">
                                 <span wire:loading.remove wire:target="submitIncident">Kirim</span>

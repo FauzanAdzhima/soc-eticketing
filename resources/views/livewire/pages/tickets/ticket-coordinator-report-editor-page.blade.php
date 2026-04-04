@@ -41,13 +41,13 @@
             x-show="open"
             x-cloak
             :style="{ opacity: fadeOpacity() }"
-            class="app-alert-popover pointer-events-auto rounded-lg border border-emerald-700 bg-emerald-600 px-4 py-3 text-sm text-emerald-50 shadow-lg dark:border-emerald-400 dark:bg-emerald-500 dark:text-white"
+            class="app-alert-popover pointer-events-auto rounded-lg border border-border-strong bg-success px-4 py-3 text-sm text-success-foreground shadow-lg"
             role="status"
         >
             <div class="flex items-start justify-between gap-3">
                 <span>{{ session('toast_success') }}</span>
                 <button type="button" @click.stop.prevent="close()"
-                    class="text-base leading-none text-emerald-100/90 hover:text-white dark:text-emerald-100/90 dark:hover:text-white"
+                    class="text-base leading-none text-success-foreground/90 hover:text-success-foreground"
                     aria-label="Tutup">&times;</button>
             </div>
         </div>
@@ -56,12 +56,12 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <flux:heading size="xl">Laporan Koordinator</flux:heading>
-            <p class="mt-1 font-mono text-sm text-zinc-500 dark:text-zinc-400">
+            <p class="mt-1 font-mono text-sm text-muted-foreground">
                 {{ $ticket->ticket_number ?? '—' }} — {{ $ticket->title ?? '—' }}
             </p>
         </div>
         <flux:button href="{{ route('tickets.index', ['ticket' => $ticket->public_id]) }}" variant="ghost" wire:navigate>
-            Kembali ke detail tiket
+            Kembali
         </flux:button>
     </div>
 
@@ -75,7 +75,7 @@
 
         <div class="grid gap-4 lg:grid-cols-2">
             <div class="space-y-3">
-                <flux:heading size="sm">Editor (rich text)</flux:heading>
+                <flux:heading size="sm">Editor</flux:heading>
                 <div
                     data-ticket-report-editor
                     data-initial-html="{{ $bodyHtml }}"
@@ -93,7 +93,7 @@
                     class="tiptap-simple ticket-editor-panel space-y-2"
                 >
                     <input type="hidden" data-editor-body>
-                    <div class="ticket-editor-toolbar flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-700 dark:bg-zinc-900/40">
+                    <div class="ticket-editor-toolbar flex items-center gap-2 rounded-lg border border-border bg-muted p-2">
                         <select
                             data-editor-node-type
                             class="ticket-editor-select"
@@ -121,8 +121,8 @@
                         $imageEvidences = $ticket->evidences->filter(fn ($evidence) => $evidence->isLikelyImage());
                     @endphp
                     @if ($imageEvidences->isNotEmpty())
-                        <div class="ticket-editor-evidence-strip rounded-md border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-700 dark:bg-zinc-900/40">
-                            <p class="mb-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                        <div class="ticket-editor-evidence-strip rounded-md border border-border bg-muted p-2">
+                            <p class="mb-2 text-xs font-semibold text-foreground-secondary">
                                 Eviden gambar (drag & drop ke editor atau klik untuk sisipkan)
                             </p>
                             <div class="flex gap-2 overflow-x-auto pb-1">
@@ -149,20 +149,20 @@
                             </div>
                         </div>
                     @endif
-                    <div data-editor-content class="ticket-editor-content min-h-[20rem] rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900/40"></div>
+                    <div data-editor-content class="ticket-editor-content min-h-[20rem] rounded-lg border border-border bg-surface p-3"></div>
                 </div>
                 @error('bodyHtml')
-                    <p class="text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                    <p class="text-sm font-medium text-danger">{{ $message }}</p>
                 @enderror
 
                 <div class="flex flex-wrap items-center justify-end gap-2 pt-2">
                     <flux:button type="button" variant="ghost" wire:click="regenerateFromSnapshot" wire:loading.attr="disabled">
-                        <span wire:loading.remove wire:target="regenerateFromSnapshot">Regenerate dari snapshot</span>
+                        <span wire:loading.remove wire:target="regenerateFromSnapshot">Muat Ulang</span>
                         <span wire:loading wire:target="regenerateFromSnapshot">Memproses…</span>
                     </flux:button>
 
                     <flux:button type="button" variant="primary" wire:click="saveDraft" wire:loading.attr="disabled">
-                        <span wire:loading.remove wire:target="saveDraft">Simpan draft</span>
+                        <span wire:loading.remove wire:target="saveDraft">Simpan Draft</span>
                         <span wire:loading wire:target="saveDraft">Menyimpan…</span>
                     </flux:button>
 
@@ -174,8 +174,8 @@
             </div>
 
             <div class="space-y-3">
-                <flux:heading size="sm">Ringkasan tiket</flux:heading>
-                <div class="ticket-summary-panel overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm dark:border-zinc-700 dark:bg-zinc-900/40">
+                <flux:heading size="sm">Ringkasan Tiket</flux:heading>
+                <div class="ticket-summary-panel overflow-auto rounded-lg border border-border bg-muted p-3 text-sm">
                     @php
                         $snapshot = is_array($snapshotJson ?? null) ? $snapshotJson : [];
                         $snapshotTicket = is_array($snapshot['ticket'] ?? null) ? $snapshot['ticket'] : [];
@@ -184,11 +184,11 @@
                     @endphp
 
                     <div class="mb-4 space-y-2">
-                        <details open class="rounded-md border border-zinc-200 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900/50">
-                            <summary class="cursor-pointer select-none text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+                        <details open class="rounded-md border border-border bg-surface p-2">
+                            <summary class="cursor-pointer select-none text-sm font-semibold text-foreground">
                                 Ringkasan Laporan Awal
                             </summary>
-                            <div class="mt-2 space-y-1 text-sm text-zinc-700 dark:text-zinc-300">
+                            <div class="mt-2 space-y-1 text-sm text-foreground-secondary">
                                 <p><span class="font-medium">No. Tiket:</span> {{ $snapshotTicket['ticket_number'] ?? '—' }}</p>
                                 <p><span class="font-medium">Judul:</span> {{ $snapshotTicket['title'] ?? '—' }}</p>
                                 <p><span class="font-medium">Pelapor:</span> {{ $snapshotTicket['reporter_name'] ?? '—' }}</p>
@@ -199,14 +199,14 @@
                             </div>
                         </details>
 
-                        <details class="rounded-md border border-zinc-200 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900/50">
-                            <summary class="cursor-pointer select-none text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+                        <details class="rounded-md border border-border bg-surface p-2">
+                            <summary class="cursor-pointer select-none text-sm font-semibold text-foreground">
                                 Ringkasan Analisis ({{ count($snapshotAnalyses) }})
                             </summary>
-                            <div class="mt-2 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                            <div class="mt-2 space-y-2 text-sm text-foreground-secondary">
                                 @forelse ($snapshotAnalyses as $index => $analysis)
-                                    <div class="rounded border border-zinc-200 p-2 dark:border-zinc-700">
-                                        <p class="font-medium text-zinc-800 dark:text-zinc-100">Analisis #{{ $index + 1 }}</p>
+                                    <div class="rounded border border-border p-2">
+                                        <p class="font-medium text-foreground">Analisis #{{ $index + 1 }}</p>
                                         <p>Severity: {{ $analysis['severity'] ?? '—' }}</p>
                                         <p>Dampak: {{ $analysis['impact'] ?? '—' }}</p>
                                         <p>Akar masalah: {{ $analysis['root_cause'] ?? '—' }}</p>
@@ -218,13 +218,13 @@
                             </div>
                         </details>
 
-                        <details class="rounded-md border border-zinc-200 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900/50">
-                            <summary class="cursor-pointer select-none text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+                        <details class="rounded-md border border-border bg-surface p-2">
+                            <summary class="cursor-pointer select-none text-sm font-semibold text-foreground">
                                 Ringkasan Penanganan Insiden ({{ count($snapshotResponses) }})
                             </summary>
-                            <div class="mt-2 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+                            <div class="mt-2 space-y-2 text-sm text-foreground-secondary">
                                 @forelse ($snapshotResponses as $response)
-                                    <div class="rounded border border-zinc-200 p-2 dark:border-zinc-700">
+                                    <div class="rounded border border-border p-2">
                                         <p><span class="font-medium">Jenis:</span> {{ $response['action_type'] ?? '—' }}</p>
                                         <p><span class="font-medium">Deskripsi:</span> {{ $response['description'] ?? '—' }}</p>
                                         <p><span class="font-medium">Pelaksana:</span> {{ $response['performed_by'] ?? '—' }}</p>
@@ -242,9 +242,9 @@
 
     <flux:card class="p-4 sm:p-5">
         <flux:heading size="sm">Info dokumen</flux:heading>
-        <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-            <div><span class="font-medium text-zinc-800 dark:text-zinc-100">Status:</span> {{ $ticketReport->status ?? 'draft' }}</div>
-            <div class="mt-1"><span class="font-medium text-zinc-800 dark:text-zinc-100">Terakhir tersimpan:</span> {{ $ticketReport->updated_at?->format('d M Y H:i') ?? '—' }}</div>
+        <div class="mt-2 text-sm text-foreground-secondary">
+            <div><span class="font-medium text-foreground">Status:</span> {{ $ticketReport->status ?? 'draft' }}</div>
+            <div class="mt-1"><span class="font-medium text-foreground">Terakhir tersimpan:</span> {{ $ticketReport->updated_at?->format('d M Y H:i') ?? '—' }}</div>
         </div>
     </flux:card>
 </div>

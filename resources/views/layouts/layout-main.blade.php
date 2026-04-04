@@ -2,6 +2,17 @@
 <html lang="id">
 
 <head>
+    <script>
+        (function() {
+            try {
+                var stored = localStorage.getItem('theme');
+                var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var useDark = stored === 'dark' || ((stored === null || stored === 'system') && prefersDark);
+
+                document.documentElement.classList.toggle('dark', !!useDark);
+            } catch (e) {}
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -11,10 +22,9 @@
     <title>{{ $title ?? 'CSIRT' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
-    @fluxAppearance
 </head>
 
-<body class="min-h-screen bg-zinc-50 antialiased dark:bg-zinc-950">
+<body class="min-h-screen bg-background antialiased text-foreground">
     <div x-data="{
         sidebarCollapsed: localStorage.getItem('sidebar-collapsed') === 'true',
         sidebarOpen: false
@@ -24,7 +34,7 @@
         @toggle-sidebar-mobile.window="sidebarOpen = !sidebarOpen"
         class="min-h-screen">
         <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
-            class="fixed inset-0 z-30 bg-zinc-950/40 lg:hidden"></div>
+            class="fixed inset-0 z-30 bg-scrim/40 lg:hidden"></div>
 
         <div class="fixed inset-y-0 left-0 z-40 w-72 transform transition-all duration-300 lg:translate-x-0"
             :class="[
@@ -102,26 +112,26 @@
                 class="app-toast-popover border-0 bg-transparent p-0 shadow-none"
             >
                 <div
-                    class="max-w-sm rounded-lg border border-sky-700 bg-sky-600 p-4 text-sky-50 shadow-lg dark:border-sky-400 dark:bg-sky-500 dark:text-white"
+                    class="max-w-sm rounded-lg border border-border-strong bg-info p-4 text-info-foreground shadow-lg"
                     x-show="payload"
                     :style="{ opacity: fadeOpacity() }"
                     x-cloak
                     role="status"
                 >
-                    <p class="text-sm font-semibold text-sky-50 dark:text-white">Penugasan tiket baru</p>
-                    <p class="mt-1 text-xs font-mono text-sky-100/90 dark:text-sky-100" x-text="payload?.ticket_number"></p>
-                    <p class="mt-1 text-sm text-sky-50/95 dark:text-white/95" x-text="payload?.title"></p>
+                    <p class="text-sm font-semibold text-info-foreground">Penugasan tiket baru</p>
+                    <p class="mt-1 text-xs font-mono text-info-foreground/90" x-text="payload?.ticket_number"></p>
+                    <p class="mt-1 text-sm text-info-foreground/95" x-text="payload?.title"></p>
                     <div class="mt-3 flex justify-end gap-2">
                         <button
                             type="button"
-                            class="text-xs font-medium text-sky-100 hover:text-white dark:text-sky-100 dark:hover:text-white"
+                            class="text-xs font-medium text-info-foreground/90 hover:text-info-foreground"
                             @click.stop.prevent="hide()"
                         >
                             Tutup
                         </button>
                         <a
                             :href="payload ? '{{ url('/tickets') }}?ticket=' + encodeURIComponent(payload.ticket_public_id) + '&scope=analyst' : '#'"
-                            class="text-xs font-medium text-white underline decoration-white/60 underline-offset-2 hover:decoration-white"
+                            class="text-xs font-medium text-info-foreground underline decoration-info-foreground/60 underline-offset-2 hover:decoration-info-foreground"
                         >
                             Buka daftar
                         </a>
@@ -187,25 +197,25 @@
                 class="app-toast-popover border-0 bg-transparent p-0 shadow-none"
             >
                 <div
-                    class="max-w-sm rounded-lg border border-emerald-700 bg-emerald-600 p-4 text-emerald-50 shadow-lg dark:border-emerald-400 dark:bg-emerald-500 dark:text-white"
+                    class="max-w-sm rounded-lg border border-border-strong bg-success p-4 text-success-foreground shadow-lg"
                     x-show="payload"
                     :style="{ opacity: fadeOpacity() }"
                     x-cloak
                     role="status"
                 >
-                    <p class="text-sm font-semibold text-emerald-50 dark:text-white">Tiket selesai ditangani</p>
-                    <p class="mt-1 text-xs font-mono text-emerald-100/90 dark:text-emerald-100" x-text="payload?.ticket_number"></p>
-                    <p class="mt-1 text-sm text-emerald-50/95 dark:text-white/95" x-text="payload?.title"></p>
+                    <p class="text-sm font-semibold text-success-foreground">Tiket selesai ditangani</p>
+                    <p class="mt-1 text-xs font-mono text-success-foreground/90" x-text="payload?.ticket_number"></p>
+                    <p class="mt-1 text-sm text-success-foreground/95" x-text="payload?.title"></p>
                     <div class="mt-3 flex justify-end gap-2">
                         <a
                             :href="payload ? '{{ url('/tickets') }}?ticket=' + encodeURIComponent(payload.ticket_public_id) : '#'"
-                            class="text-xs font-medium text-white underline decoration-white/60 underline-offset-2 hover:decoration-white"
+                            class="text-xs font-medium text-success-foreground underline decoration-success-foreground/60 underline-offset-2 hover:decoration-success-foreground"
                         >
                             Buka detail
                         </a>
                         <button
                             type="button"
-                            class="text-xs font-medium text-emerald-100 hover:text-white dark:text-emerald-100 dark:hover:text-white"
+                            class="text-xs font-medium text-success-foreground/90 hover:text-success-foreground"
                             @click.stop.prevent="hide()"
                         >
                             Tutup

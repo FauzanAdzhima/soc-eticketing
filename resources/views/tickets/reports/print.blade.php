@@ -59,9 +59,9 @@
         }
     </style>
 </head>
-<body class="bg-white text-black">
+<body class="bg-surface text-foreground">
     <div class="no-print mb-4 flex items-center justify-end gap-2">
-        <button type="button" class="rounded bg-zinc-200 px-3 py-1 text-sm" onclick="window.print()">Print</button>
+        <button type="button" class="rounded border border-border bg-muted px-3 py-1 text-sm text-foreground" onclick="window.print()">Print</button>
     </div>
 
     <div class="mx-auto max-w-4xl">

@@ -1,7 +1,7 @@
 <div class="space-y-6">
     @if (session()->has('toast_success'))
         <div x-data="{ open: true }" x-init="window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => open = false, 5000)" x-show="open"
-            class="rounded-lg border border-emerald-300 bg-emerald-100 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-100">
+            class="rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-foreground">
             <div class="flex items-start justify-between gap-3">
                 <span>{{ session('toast_success') }}</span>
                 <button type="button" @click="open = false" class="text-base leading-none" aria-label="Tutup">&times;</button>
@@ -10,7 +10,7 @@
     @endif
     @if (session()->has('toast_error'))
         <div x-data="{ open: true }" x-init="window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => open = false, 5000)" x-show="open"
-            class="rounded-lg border border-red-300 bg-red-100 px-4 py-3 text-sm text-red-900 dark:border-red-700 dark:bg-red-900/40 dark:text-red-100">
+            class="rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-foreground">
             <div class="flex items-start justify-between gap-3">
                 <span>{{ session('toast_error') }}</span>
                 <button type="button" @click="open = false" class="text-base leading-none" aria-label="Tutup">&times;</button>
@@ -20,11 +20,11 @@
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <flux:heading size="xl">Analisis insiden</flux:heading>
-            <p class="mt-1 font-mono text-sm text-zinc-500 dark:text-zinc-400">{{ $ticket->ticket_number ?? '—' }} — {{ $ticket->title }}</p>
+            <flux:heading size="xl">Analisis Insiden</flux:heading>
+            <p class="mt-1 font-mono text-sm text-muted-foreground">{{ $ticket->ticket_number ?? '—' }} — {{ $ticket->title }}</p>
         </div>
         <flux:button href="{{ route('tickets.index', ['scope' => 'analyst', 'ticket' => $ticket->public_id]) }}" variant="ghost" wire:navigate>
-            Kembali ke daftar tiket dianalisis
+            Kembali
         </flux:button>
     </div>
 
@@ -41,14 +41,14 @@
     <flux:card class="overflow-hidden p-0">
         <details class="group border-0">
             <summary
-                class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-left outline-none transition hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 dark:hover:bg-zinc-800/60 [&::-webkit-details-marker]:hidden"
+                class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-left outline-none transition hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary [&::-webkit-details-marker]:hidden"
             >
                 <div class="min-w-0 flex-1">
-                    <span class="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">Detail tiket</span>
-                    <span class="mt-0.5 block text-xs font-normal text-zinc-500 dark:text-zinc-400">Data laporan, pelapor, deskripsi insiden, dan bukti dukung</span>
+                    <span class="block text-sm font-semibold text-foreground">Detail Tiket</span>
+                    <span class="mt-0.5 block text-xs font-normal text-muted-foreground">Data laporan, pelapor, deskripsi insiden, dan bukti dukung</span>
                 </div>
                 <svg
-                    class="size-5 shrink-0 text-zinc-500 transition-transform duration-200 group-open:rotate-180 dark:text-zinc-400"
+                    class="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="currentColor"
@@ -57,83 +57,83 @@
                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
                 </svg>
             </summary>
-            <div class="space-y-6 border-t border-zinc-200 p-4 sm:p-5 dark:border-zinc-700">
-                <flux:heading size="lg">Ringkasan laporan</flux:heading>
+            <div class="space-y-6 border-t border-border p-4 sm:p-5">
+                <flux:heading size="lg">Ringkasan Laporan</flux:heading>
                 <dl class="grid gap-3 text-sm sm:grid-cols-2">
                     <div>
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Status</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $ticket->status }}</dd>
+                        <dt class="font-medium text-muted-foreground">Status</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $ticket->status }}</dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Status laporan</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $ticket->report_status ?? '—' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Status Laporan</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $ticket->report_status ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Sub-status</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $ticket->sub_status ?? '—' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Sub-Status</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $ticket->sub_status ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Laporan valid</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $ticket->report_is_valid ? 'Ya' : 'Belum' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Laporan Valid</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $ticket->report_is_valid ? 'Ya' : 'Belum' }}</dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Kategori</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $ticket->category?->name ?? '—' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Kategori</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $ticket->category?->name ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Tingkat keparahan (laporan)</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $ticket->incident_severity ?? '—' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Tingkat Keparahan (Laporan)</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $ticket->incident_severity ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Waktu kejadian</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $ticket->incident_time?->format('d M Y H:i') ?? '—' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Waktu Kejadian</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $ticket->incident_time?->format('d M Y H:i') ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Assigned To</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $assignedNames !== '' ? $assignedNames : '—' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Petugas Tiket</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $assignedNames !== '' ? $assignedNames : '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Dibuat</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $ticket->created_at?->format('d M Y H:i') }}</dd>
+                        <dt class="font-medium text-muted-foreground">Dibuat</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $ticket->created_at?->format('d M Y H:i') }}</dd>
                     </div>
                     <div class="sm:col-span-2">
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Pembuat tiket (internal)</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $ticket->creator?->name ?? '—' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Pembuat Tiket (internal)</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $ticket->creator?->name ?? '—' }}</dd>
                     </div>
                     <div class="sm:col-span-2">
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Pelapor</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $ticket->reporter_name ?? '—' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Pelapor</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $ticket->reporter_name ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Email pelapor</dt>
-                        <dd class="mt-0.5 break-all text-zinc-900 dark:text-zinc-100">{{ $ticket->reporter_email ?? '—' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Email Pelapor</dt>
+                        <dd class="mt-0.5 break-all text-foreground">{{ $ticket->reporter_email ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Kontak pelapor</dt>
-                        <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $ticket->reporter_phone ?? '—' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Kontak Pelapor</dt>
+                        <dd class="mt-0.5 text-foreground">{{ $ticket->reporter_phone ?? '—' }}</dd>
                     </div>
                     @if (filled($reporterOrg))
                         <div class="sm:col-span-2">
-                            <dt class="font-medium text-zinc-500 dark:text-zinc-400">Instansi / organisasi pelapor</dt>
-                            <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $reporterOrg }}</dd>
+                            <dt class="font-medium text-muted-foreground">Instansi / Organisasi Pelapor</dt>
+                            <dd class="mt-0.5 text-foreground">{{ $reporterOrg }}</dd>
                         </div>
                     @endif
                     <div class="sm:col-span-2">
-                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">Deskripsi insiden</dt>
-                        <dd class="mt-0.5 whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{{ $ticket->incident_description ?? '—' }}</dd>
+                        <dt class="font-medium text-muted-foreground">Deskripsi Insiden</dt>
+                        <dd class="mt-0.5 whitespace-pre-wrap text-foreground">{{ $ticket->incident_description ?? '—' }}</dd>
                     </div>
                 </dl>
                 @if (filled($ticket->report_rejection_reason))
-                    <div class="rounded-lg border border-red-200 bg-red-50/80 p-3 dark:border-red-900/50 dark:bg-red-950/20">
-                        <p class="text-sm font-medium text-red-800 dark:text-red-300">Alasan penolakan laporan</p>
-                        <p class="mt-1 whitespace-pre-wrap text-sm text-red-900 dark:text-red-100">{{ $ticket->report_rejection_reason }}</p>
+                    <div class="rounded-lg border border-danger/40 bg-danger/10 p-3">
+                        <p class="text-sm font-medium text-danger">Alasan Penolakan Laporan</p>
+                        <p class="mt-1 whitespace-pre-wrap text-sm text-foreground">{{ $ticket->report_rejection_reason }}</p>
                     </div>
                 @endif
 
                 <div>
-                    <flux:heading size="lg" class="mb-3">Bukti dukung</flux:heading>
+                    <flux:heading size="lg" class="mb-3">Bukti Dukung</flux:heading>
                     @if ($ticket->evidences->isEmpty())
-                        <flux:text class="text-zinc-500 dark:text-zinc-400">Tidak ada lampiran pada tiket ini.</flux:text>
+                        <flux:text class="text-muted-foreground">Tidak ada lampiran pada tiket ini.</flux:text>
                     @else
                         <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                             @foreach ($ticket->evidences as $evidence)
@@ -141,9 +141,9 @@
                                     $evidenceUrl = route('tickets.evidence.show', $evidence);
                                     $sizeKb = $evidence->size ? number_format((int) $evidence->size / 1024, 1) : null;
                                 @endphp
-                                <li class="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/80" wire:key="analysis-evidence-{{ $evidence->id }}">
-                                    <a href="{{ $evidenceUrl }}" target="_blank" rel="noopener noreferrer" class="block focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
-                                        <div class="relative h-28 w-full overflow-hidden bg-zinc-200 sm:h-32 dark:bg-zinc-700">
+                                <li class="overflow-hidden rounded-lg border border-border bg-muted" wire:key="analysis-evidence-{{ $evidence->id }}">
+                                    <a href="{{ $evidenceUrl }}" target="_blank" rel="noopener noreferrer" class="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                                        <div class="relative h-28 w-full overflow-hidden bg-muted sm:h-32">
                                             @if ($evidence->isLikelyImage())
                                                 <img src="{{ $evidenceUrl }}"
                                                     alt="{{ $evidence->original_name ?? 'Bukti gambar' }}"
@@ -152,15 +152,15 @@
                                                     decoding="async"
                                                     fetchpriority="low">
                                             @else
-                                                <div class="flex h-full w-full items-center justify-center text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                                                <div class="flex h-full w-full items-center justify-center text-xs font-medium text-foreground-secondary">
                                                     {{ strtoupper(\Illuminate\Support\Str::afterLast($evidence->original_name ?? 'file', '.')) ?: 'FILE' }}
                                                 </div>
                                             @endif
                                         </div>
-                                        <div class="border-t border-zinc-200 p-2 dark:border-zinc-600">
-                                            <p class="truncate text-xs font-medium text-zinc-800 dark:text-zinc-100" title="{{ $evidence->original_name }}">{{ $evidence->original_name ?? 'Lampiran' }}</p>
+                                        <div class="border-t border-border p-2">
+                                            <p class="truncate text-xs font-medium text-foreground" title="{{ $evidence->original_name }}">{{ $evidence->original_name ?? 'Lampiran' }}</p>
                                             @if ($sizeKb !== null)
-                                                <p class="text-[11px] text-zinc-500 dark:text-zinc-400">{{ $sizeKb }} KB</p>
+                                                <p class="text-[11px] text-muted-foreground">{{ $sizeKb }} KB</p>
                                             @endif
                                         </div>
                                     </a>
@@ -174,63 +174,63 @@
     </flux:card>
 
     <section id="riwayat-analisis" class="scroll-mt-6 space-y-4" aria-labelledby="riwayat-analisis-heading">
-        <flux:heading size="lg" id="riwayat-analisis-heading">Riwayat analisis</flux:heading>
+        <flux:heading size="lg" id="riwayat-analisis-heading">Riwayat Analisis</flux:heading>
         @if ($ticket->analyses->isEmpty())
             <flux:card class="p-4 sm:p-5">
-                <flux:text class="text-zinc-500 dark:text-zinc-400">Belum ada entri analisis untuk tiket ini.</flux:text>
+                <flux:text class="text-muted-foreground">Belum ada entri analisis untuk tiket ini.</flux:text>
             </flux:card>
         @else
             <div class="space-y-4">
                 @foreach ($ticket->analyses as $analysis)
                     <flux:card class="space-y-4 p-4 sm:p-5" wire:key="analysis-history-{{ $analysis->id }}">
-                        <div class="flex flex-col gap-2 border-b border-zinc-200 pb-3 dark:border-zinc-700 sm:flex-row sm:items-start sm:justify-between">
+                        <div class="flex flex-col gap-2 border-b border-border pb-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
-                                <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                <p class="text-sm font-semibold text-foreground">
                                     {{ $analysis->performer?->name ?? 'Analis #' . $analysis->performed_by }}
                                 </p>
-                                <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                                <p class="mt-0.5 text-xs text-muted-foreground">
                                     {{ $analysis->created_at?->format('d M Y H:i') ?? '—' }}
                                 </p>
                             </div>
-                            <span class="inline-flex w-fit rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                            <span class="inline-flex w-fit rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
                                 {{ $analysis->severity ?? '—' }}
                             </span>
                         </div>
 
                         <dl class="grid gap-3 text-sm sm:grid-cols-2">
                             <div class="sm:col-span-2">
-                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Dampak</dt>
-                                <dd class="mt-1 whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{{ filled($analysis->impact) ? $analysis->impact : '—' }}</dd>
+                                <dt class="font-medium text-muted-foreground">Dampak</dt>
+                                <dd class="mt-1 whitespace-pre-wrap text-foreground">{{ filled($analysis->impact) ? $analysis->impact : '—' }}</dd>
                             </div>
                             <div class="sm:col-span-2">
-                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Akar masalah</dt>
-                                <dd class="mt-1 whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{{ filled($analysis->root_cause) ? $analysis->root_cause : '—' }}</dd>
+                                <dt class="font-medium text-muted-foreground">Akar masalah</dt>
+                                <dd class="mt-1 whitespace-pre-wrap text-foreground">{{ filled($analysis->root_cause) ? $analysis->root_cause : '—' }}</dd>
                             </div>
                             <div class="sm:col-span-2">
-                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Rekomendasi</dt>
-                                <dd class="mt-1 whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{{ filled($analysis->recommendation) ? $analysis->recommendation : '—' }}</dd>
+                                <dt class="font-medium text-muted-foreground">Rekomendasi</dt>
+                                <dd class="mt-1 whitespace-pre-wrap text-foreground">{{ filled($analysis->recommendation) ? $analysis->recommendation : '—' }}</dd>
                             </div>
                             @if (filled($analysis->analysis_result))
                                 <div class="sm:col-span-2">
-                                    <dt class="font-medium text-zinc-500 dark:text-zinc-400">Ringkasan</dt>
-                                    <dd class="mt-1 whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">{{ $analysis->analysis_result }}</dd>
+                                    <dt class="font-medium text-muted-foreground">Ringkasan</dt>
+                                    <dd class="mt-1 whitespace-pre-wrap text-foreground">{{ $analysis->analysis_result }}</dd>
                                 </div>
                             @endif
                         </dl>
 
                         <div>
-                            <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">IOC</p>
+                            <p class="text-sm font-medium text-foreground-secondary">IOC</p>
                             @if ($analysis->iocs->isEmpty())
-                                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Tidak ada IOC pada entri ini.</p>
+                                <p class="mt-1 text-sm text-muted-foreground">Tidak ada IOC pada entri ini.</p>
                             @else
-                                <ul class="mt-2 divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-700 dark:border-zinc-700">
+                                <ul class="mt-2 divide-y divide-border rounded-lg border border-border">
                                     @foreach ($analysis->iocs as $ioc)
                                         <li class="px-3 py-2 text-sm" wire:key="analysis-{{ $analysis->id }}-ioc-{{ $ioc->id }}">
-                                            <span class="font-medium text-zinc-800 dark:text-zinc-200">{{ $ioc->iocType?->ioc_type ?? 'IOC' }}</span>
-                                            <span class="mx-1 text-zinc-400">·</span>
-                                            <code class="rounded bg-zinc-100 px-1 py-0.5 text-xs text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">{{ $ioc->value }}</code>
+                                            <span class="font-medium text-foreground">{{ $ioc->iocType?->ioc_type ?? 'IOC' }}</span>
+                                            <span class="mx-1 text-muted-foreground">·</span>
+                                            <code class="rounded bg-muted px-1 py-0.5 text-xs text-foreground">{{ $ioc->value }}</code>
                                             @if (filled($ioc->description))
-                                                <p class="mt-1 text-xs text-zinc-600 dark:text-zinc-400">{{ $ioc->description }}</p>
+                                                <p class="mt-1 text-xs text-muted-foreground">{{ $ioc->description }}</p>
                                             @endif
                                         </li>
                                     @endforeach
@@ -245,9 +245,9 @@
 
     <form wire:submit="submit" class="space-y-8">
         @if ($hasExistingOwnAnalysis)
-            <flux:card class="space-y-3 border-sky-200 bg-sky-50/80 p-4 dark:border-sky-900/50 dark:bg-sky-950/20 sm:p-5">
+            <flux:card class="space-y-3 border-info/40 bg-info/10 p-4 sm:p-5 dark:border-info/30">
                 <flux:heading size="sm">Kebijakan penyimpanan</flux:heading>
-                <flux:text class="text-sm text-zinc-700 dark:text-zinc-300">
+                <flux:text class="text-sm text-foreground-secondary">
                     Secara bawaan, <strong>Simpan analisis</strong> memperbarui entri analisis terbaru milik Anda pada tiket ini (IOC lama diganti). Centang opsi di bawah jika Anda sengaja ingin menambah entri baru di riwayat (addendum).
                 </flux:text>
                 <flux:checkbox wire:model.live="saveAsAddendum" label="Simpan sebagai addendum (entri analisis baru)" />
@@ -255,57 +255,57 @@
         @endif
 
         <flux:card class="space-y-6 p-4 sm:p-5">
-            <flux:heading size="lg">Ringkasan analisis</flux:heading>
+            <flux:heading size="lg">Ringkasan Analisis</flux:heading>
 
-            <flux:select label="Tingkat keparahan (analisis)" wire:model="severity">
+            <flux:select label="Tingkat Keparahan (Analisis)" wire:model="severity">
                 <flux:select.option value="Low">Low</flux:select.option>
                 <flux:select.option value="Medium">Medium</flux:select.option>
                 <flux:select.option value="High">High</flux:select.option>
                 <flux:select.option value="Critical">Critical</flux:select.option>
             </flux:select>
             @error('severity')
-                <p class="text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p class="text-sm font-medium text-danger">{{ $message }}</p>
             @enderror
 
             <flux:textarea label="Dampak" wire:model="impact" rows="3" placeholder="Jelaskan dampak terhadap layanan atau data." />
             @error('impact')
-                <p class="text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p class="text-sm font-medium text-danger">{{ $message }}</p>
             @enderror
 
-            <flux:textarea label="Akar masalah" wire:model="root_cause" rows="4" placeholder="Penyebab atau hipotesis utama." />
+            <flux:textarea label="Akar Masalah" wire:model="root_cause" rows="4" placeholder="Penyebab atau hipotesis utama." />
             @error('root_cause')
-                <p class="text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p class="text-sm font-medium text-danger">{{ $message }}</p>
             @enderror
 
             <flux:textarea label="Rekomendasi" wire:model="recommendation" rows="4" placeholder="Langkah mitigasi atau tindak lanjut yang disarankan." />
             @error('recommendation')
-                <p class="text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p class="text-sm font-medium text-danger">{{ $message }}</p>
             @enderror
 
-            <flux:textarea label="Ringkasan eksekutif (opsional)" wire:model="analysisSummary" rows="3"
+            <flux:textarea label="Ringkasan Analisis" wire:model="analysisSummary" rows="3"
                 placeholder="Ringkasan singkat untuk jejak audit atau pelaporan." />
             @error('analysisSummary')
-                <p class="text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p class="text-sm font-medium text-danger">{{ $message }}</p>
             @enderror
         </flux:card>
 
         <flux:card class="space-y-6 p-4 sm:p-5">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <flux:heading size="lg">Indikator kompromi (IOC)</flux:heading>
+                    <flux:heading size="lg">Indikator Kompromi (IOC)</flux:heading>
                     <flux:subheading>Tambahkan satu atau lebih IOC. Baris dengan nilai kosong diabaikan saat menyimpan.</flux:subheading>
                 </div>
                 <flux:button type="button" size="sm" variant="outline" wire:click="addIocRow">Tambah IOC</flux:button>
             </div>
 
             @if ($iocTypes->isEmpty())
-                <flux:text class="text-amber-700 dark:text-amber-300">Belum ada tipe IOC di sistem. Jalankan seeder atau hubungi administrator.</flux:text>
+                <flux:text class="text-warning">Belum ada tipe IOC di sistem. Jalankan seeder atau hubungi administrator.</flux:text>
             @else
                 <div class="space-y-6">
                     @foreach ($iocRows as $index => $row)
-                        <div wire:key="ioc-row-{{ $index }}" class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                        <div wire:key="ioc-row-{{ $index }}" class="rounded-lg border border-border p-4">
                             <div class="mb-4 flex items-center justify-between gap-2">
-                                <span class="text-sm font-medium text-zinc-600 dark:text-zinc-300">IOC #{{ $index + 1 }}</span>
+                                <span class="text-sm font-medium text-foreground-secondary">IOC #{{ $index + 1 }}</span>
                                 @if (count($iocRows) > 1)
                                     <flux:button type="button" size="xs" variant="ghost" wire:click="removeIocRow({{ $index }})">
                                         Hapus baris
@@ -321,19 +321,19 @@
                                         @endforeach
                                     </flux:select>
                                     @error('iocRows.'.$index.'.type_id')
-                                        <p class="mt-1 text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                                        <p class="mt-1 text-sm font-medium text-danger">{{ $message }}</p>
                                     @enderror
                                 </div>
                                 <div class="sm:col-span-2">
                                     <flux:input label="Nilai" wire:model="iocRows.{{ $index }}.value" placeholder="contoh: 192.0.2.1 atau domain.com" />
                                     @error('iocRows.'.$index.'.value')
-                                        <p class="mt-1 text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                                        <p class="mt-1 text-sm font-medium text-danger">{{ $message }}</p>
                                     @enderror
                                 </div>
                                 <div class="sm:col-span-2">
                                     <flux:textarea label="Deskripsi (opsional)" wire:model="iocRows.{{ $index }}.description" rows="2" />
                                     @error('iocRows.'.$index.'.description')
-                                        <p class="mt-1 text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                                        <p class="mt-1 text-sm font-medium text-danger">{{ $message }}</p>
                                     @enderror
                                 </div>
                             </div>
@@ -346,7 +346,7 @@
         <div class="flex flex-wrap items-center justify-end gap-3">
             <flux:button href="{{ route('tickets.index', ['scope' => 'analyst', 'ticket' => $ticket->public_id]) }}" variant="ghost" wire:navigate>Batal</flux:button>
             <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
-                <span wire:loading.remove wire:target="submit">Simpan analisis</span>
+                <span wire:loading.remove wire:target="submit">Simpan Analisis</span>
                 <span wire:loading wire:target="submit">Menyimpan…</span>
             </flux:button>
         </div>

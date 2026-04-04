@@ -24,7 +24,7 @@
                             <flux:heading size="lg">Buat Tiket Baru</flux:heading>
 
                             <div>
-                                <flux:button variant="primary" href="{{ route('ticket.create') }}"
+                                <flux:button variant="primary" color="blue" href="{{ route('ticket.create') }}"
                                     icon:trailing="arrow-right" class="mt-8 py-3">
                                     Buat Tiket
                                 </flux:button>
@@ -42,7 +42,7 @@
                             <flux:heading size="lg">Cari Tiket</flux:heading>
 
                             <div>
-                                <flux:button variant="primary" class="mt-8 py-3" icon:trailing="arrow-right">
+                                <flux:button variant="primary" color="blue" class="mt-8 py-3" icon:trailing="arrow-right">
                                     Cari Tiket Anda
                                 </flux:button>
                             </div>
@@ -67,7 +67,7 @@
                         </flux:text>
                     </div>
                     <div class="flex justify-center md:w-1/5 md:justify-end">
-                        <flux:button variant="primary" class="p-3" icon:trailing="arrow-down-tray">
+                        <flux:button variant="primary" color="blue" class="p-3" icon:trailing="arrow-down-tray">
                             Unduh Panduan
                         </flux:button>
                     </div>
