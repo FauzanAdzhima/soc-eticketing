@@ -26,10 +26,10 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            // 'public_id' => Str::uuid(),
-            'public_id' => 'USR-' . fake()->unique()->bothify('##??'),
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'public_id' => (string) Str::uuid(),
+            'name' => $this->faker?->name() ?? 'User',
+            'email' => $this->faker?->unique()->safeEmail()
+                ?? (Str::uuid()->toString().'@factory.invalid'),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'organization_id' => Organization::factory(),
