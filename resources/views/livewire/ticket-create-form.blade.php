@@ -36,7 +36,8 @@
                     <flux:icon.check-circle variant="solid" class="mx-auto size-16 text-success" />
                     <flux:heading size="xl" class="mt-4">Laporan Terkirim!</flux:heading>
                     <flux:subheading>Nomor Tiket Anda:</flux:subheading>
-                    <div class="mt-4 rounded-lg bg-muted p-4 font-mono text-lg font-bold select-all">
+                    <div
+                        class="mt-4 rounded-lg border border-border bg-muted p-4 font-mono text-lg font-bold select-all !text-foreground dark:border-zinc-600 dark:bg-zinc-700 dark:!text-zinc-50">
                         {{ $createdTicketNo }}
                     </div>
                     <div class="mt-8">

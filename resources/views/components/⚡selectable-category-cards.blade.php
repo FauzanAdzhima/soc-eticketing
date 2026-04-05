@@ -177,13 +177,14 @@ new class extends Component {
     <flux:modal name="incident-modal" class="md:w-[800px]">
         <div class="space-y-6">
             @if ($isSuccess)
-                <div class="text-center py-10 animate-fade-in">
-                    <flux:icon.check-circle variant="solid" class="size-16 text-green-500 mx-auto" />
-                    <flux:heading size="xl" class="mt-4">Laporan Terkirim!</flux:heading>
-                    <flux:subheading>Nomor Tiket Anda:</flux:subheading>
+                <div class="text-center py-10 animate-fade-in text-zinc-900 dark:text-zinc-100">
+                    <flux:icon.check-circle variant="solid"
+                        class="size-16 mx-auto text-green-600 dark:text-green-400" />
+                    <flux:heading size="xl" class="mt-4 text-zinc-900 dark:text-zinc-50">Laporan Terkirim!</flux:heading>
+                    <flux:subheading class="text-zinc-600 dark:text-zinc-400">Nomor Tiket Anda:</flux:subheading>
 
                     <div
-                        class="mt-4 p-4 bg-zinc-100 dark:bg-zinc-800 rounded-lg font-mono text-lg font-bold select-all">
+                        class="mt-4 rounded-lg border border-zinc-200 bg-zinc-100 p-4 font-mono text-lg font-bold select-all !text-zinc-900 dark:border-zinc-600 dark:bg-zinc-700 dark:!text-zinc-50">
                         {{ $createdTicketNo }}
                     </div>
 

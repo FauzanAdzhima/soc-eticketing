@@ -2,36 +2,209 @@
     <flux:heading size="xl">Dashboard</flux:heading>
 
     {{-- Hierarki multi-role: PIC → Analis → Responder --}}
-    @if (! empty($showPicTicketStatsCard) && $picTicketTotalCount !== null && $picTicketVerifiedCount !== null && $picTicketRejectedCount !== null && $picTicketOnProgressCount !== null)
+    @if (! empty($showPicTicketStatsCard) && $picTicketTotalCount !== null && $picTicketVerifiedCount !== null && $picTicketRejectedCount !== null && $picTicketOnProgressCount !== null && $picChartPayload !== null)
         <flux:card class="space-y-4 p-5">
             <div>
-                <flux:heading size="lg">Ringkasan laporan (PIC)</flux:heading>
-                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Statistik tiket di seluruh sistem.</p>
+                <flux:heading size="lg">Rekap Tiket Masuk</flux:heading>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Statistik tiket di sistem.</p>
             </div>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div class="rounded-lg border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
-                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Total tiket</p>
-                    <p class="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{{ number_format($picTicketTotalCount) }}</p>
+            <div class="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-stretch">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div class="rounded-lg border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+                        <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Total Tiket</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{{ number_format($picTicketTotalCount) }}</p>
+                    </div>
+                    <div class="rounded-lg border border-sky-200/80 bg-sky-50/70 px-4 py-3 dark:border-sky-900/40 dark:bg-sky-950/25">
+                        <p class="text-sm font-medium text-sky-900 dark:text-sky-200">Diverifikasi</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-sky-950 dark:text-sky-100">{{ number_format($picTicketVerifiedCount) }}</p>
+                        <p class="mt-1 text-xs text-sky-800/90 dark:text-sky-300/90">Laporan yang valid dan terverifikasi</p>
+                    </div>
+                    <div class="rounded-lg border border-red-200/80 bg-red-50/70 px-4 py-3 dark:border-red-900/40 dark:bg-red-950/25">
+                        <p class="text-sm font-medium text-red-800 dark:text-red-300">Ditolak</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-red-950 dark:text-red-100">{{ number_format($picTicketRejectedCount) }}</p>
+                        <p class="mt-1 text-xs text-red-800/80 dark:text-red-300/90">Laporan yang tidak valid dan ditolak</p>
+                    </div>
+                    <div class="rounded-lg border border-violet-200/80 bg-violet-50/70 px-4 py-3 dark:border-violet-900/40 dark:bg-violet-950/25">
+                        <p class="text-sm font-medium text-violet-900 dark:text-violet-200">Dalam Penanganan</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-violet-950 dark:text-violet-100">{{ number_format($picTicketOnProgressCount) }}</p>
+                        <p class="mt-1 text-xs text-violet-800/90 dark:text-violet-300/90">Tiket yang sedang ditangani</p>
+                    </div>
                 </div>
-                <div class="rounded-lg border border-sky-200/80 bg-sky-50/70 px-4 py-3 dark:border-sky-900/40 dark:bg-sky-950/25">
-                    <p class="text-sm font-medium text-sky-900 dark:text-sky-200">Diverifikasi</p>
-                    <p class="mt-1 text-2xl font-semibold tabular-nums text-sky-950 dark:text-sky-100">{{ number_format($picTicketVerifiedCount) }}</p>
-                    <p class="mt-1 text-xs text-sky-800/90 dark:text-sky-300/90">Status laporan Verified</p>
-                </div>
-                <div class="rounded-lg border border-red-200/80 bg-red-50/70 px-4 py-3 dark:border-red-900/40 dark:bg-red-950/25">
-                    <p class="text-sm font-medium text-red-800 dark:text-red-300">Ditolak</p>
-                    <p class="mt-1 text-2xl font-semibold tabular-nums text-red-950 dark:text-red-100">{{ number_format($picTicketRejectedCount) }}</p>
-                    <p class="mt-1 text-xs text-red-800/80 dark:text-red-300/90">Laporan ditolak</p>
-                </div>
-                <div class="rounded-lg border border-violet-200/80 bg-violet-50/70 px-4 py-3 dark:border-violet-900/40 dark:bg-violet-950/25">
-                    <p class="text-sm font-medium text-violet-900 dark:text-violet-200">On progress</p>
-                    <p class="mt-1 text-2xl font-semibold tabular-nums text-violet-950 dark:text-violet-100">{{ number_format($picTicketOnProgressCount) }}</p>
-                    <p class="mt-1 text-xs text-violet-800/90 dark:text-violet-300/90">Penanganan berjalan</p>
+                <div class="flex min-h-[14rem] flex-col rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-900/30">
+                    <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Grafik Tiket Masuk</p>
+                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Jumlah per kategori (satu tiket dapat masuk lebih dari satu kategori, misalnya diverifikasi sekaligus dalam penanganan).</p>
+                    @if ($picTicketTotalCount < 1)
+                        <p class="mt-auto py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Belum ada tiket untuk ditampilkan pada grafik.</p>
+                    @else
+                        <div
+                            class="relative mt-3 min-h-[12rem] flex-1 w-full"
+                            wire:key="pic-ticket-chart-{{ $picTicketVerifiedCount }}-{{ $picTicketRejectedCount }}-{{ $picTicketOnProgressCount }}"
+                            x-data="{
+                                chart: null,
+                                destroyChart() {
+                                    if (this.chart) {
+                                        this.chart.destroy();
+                                        this.chart = null;
+                                    }
+                                },
+                                run() {
+                                    this.destroyChart();
+                                    this.$nextTick(() => {
+                                        const Chart = window.Chart;
+                                        const canvas = this.$refs.picTicketChartCanvas;
+                                        const p = {{ \Illuminate\Support\Js::from($picChartPayload) }};
+                                        if (!Chart || !canvas || !p || !Array.isArray(p.values)) {
+                                            return;
+                                        }
+                                        const isDark = document.documentElement.classList.contains('dark');
+                                        const tickColor = isDark ? '#a1a1aa' : '#52525b';
+                                        const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+                                        this.chart = new Chart(canvas, {
+                                            type: 'bar',
+                                            data: {
+                                                labels: p.labels,
+                                                datasets: [
+                                                    {
+                                                        label: 'Jumlah tiket',
+                                                        data: p.values,
+                                                        backgroundColor: [
+                                                            'rgba(14, 165, 233, 0.78)',
+                                                            'rgba(239, 68, 68, 0.78)',
+                                                            'rgba(139, 92, 246, 0.78)',
+                                                        ],
+                                                        borderRadius: 6,
+                                                    },
+                                                ],
+                                            },
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: { display: false },
+                                                },
+                                                scales: {
+                                                    x: {
+                                                        ticks: { color: tickColor, maxRotation: 45, minRotation: 0 },
+                                                        grid: { display: false },
+                                                    },
+                                                    y: {
+                                                        beginAtZero: true,
+                                                        ticks: { color: tickColor, precision: 0 },
+                                                        grid: { color: gridColor },
+                                                    },
+                                                },
+                                            },
+                                        });
+                                    });
+                                },
+                            }"
+                            x-init="run()"
+                            x-on:livewire:navigating.window="destroyChart()"
+                        >
+                            <canvas x-ref="picTicketChartCanvas" class="h-full max-h-[20rem] w-full"></canvas>
+                        </div>
+                    @endif
                 </div>
             </div>
             <div class="flex justify-end">
                 <flux:button variant="ghost" size="sm" href="{{ route('tickets.index') }}" wire:navigate>
-                    Buka daftar tiket
+                    Buka Daftar Tiket
+                </flux:button>
+            </div>
+        </flux:card>
+    @endif
+
+    @if (! empty($showCoordinatorTicketStatsCard) && $coordinatorTicketTotalCount !== null && $coordinatorTicketOpenCount !== null && $coordinatorTicketClosedCount !== null && $coordinatorChartPayload !== null)
+        <flux:card class="space-y-4 p-5">
+            <div>
+                <flux:heading size="lg">Rekap Tiket</flux:heading>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Statistik tiket di sistem.</p>
+            </div>
+            <div class="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-stretch">
+                <div class="flex flex-col gap-4">
+                    <div class="rounded-lg border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+                        <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Jumlah Tiket</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{{ number_format($coordinatorTicketTotalCount) }}</p>
+                    </div>
+                    <div class="rounded-lg border border-amber-200/80 bg-amber-50/70 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/25">
+                        <p class="text-sm font-medium text-amber-900 dark:text-amber-200">Tiket Dibuka</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-amber-950 dark:text-amber-100">{{ number_format($coordinatorTicketOpenCount) }}</p>
+                        {{-- <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-200/90">Sta</p> --}}
+                    </div>
+                    <div class="rounded-lg border border-emerald-200/80 bg-emerald-50/70 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/25">
+                        <p class="text-sm font-medium text-emerald-800 dark:text-emerald-300">Tiket Ditutup</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-emerald-950 dark:text-emerald-100">{{ number_format($coordinatorTicketClosedCount) }}</p>
+                        {{-- <p class="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/90">Status Closed</p> --}}
+                    </div>
+                </div>
+                <div class="flex min-h-[14rem] flex-col rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-900/30">
+                    <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Grafik Status Tiket</p>
+                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Perbandingan tiket dibuka dan ditutup (total {{ number_format($coordinatorTicketTotalCount) }}).</p>
+                    @if ($coordinatorTicketTotalCount < 1)
+                        <p class="mt-auto py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Belum ada tiket untuk ditampilkan pada grafik.</p>
+                    @else
+                        <div
+                            class="relative mt-3 min-h-[12rem] flex-1 w-full"
+                            wire:key="coordinator-ticket-chart-{{ $coordinatorTicketOpenCount }}-{{ $coordinatorTicketClosedCount }}"
+                            x-data="{
+                                chart: null,
+                                destroyChart() {
+                                    if (this.chart) {
+                                        this.chart.destroy();
+                                        this.chart = null;
+                                    }
+                                },
+                                run() {
+                                    this.destroyChart();
+                                    this.$nextTick(() => {
+                                        const Chart = window.Chart;
+                                        const canvas = this.$refs.coordinatorTicketChartCanvas;
+                                        const p = {{ \Illuminate\Support\Js::from($coordinatorChartPayload) }};
+                                        if (!Chart || !canvas || !p || !Array.isArray(p.values)) {
+                                            return;
+                                        }
+                                        const isDark = document.documentElement.classList.contains('dark');
+                                        const tickColor = isDark ? '#a1a1aa' : '#52525b';
+                                        this.chart = new Chart(canvas, {
+                                            type: 'doughnut',
+                                            data: {
+                                                labels: p.labels,
+                                                datasets: [
+                                                    {
+                                                        data: p.values,
+                                                        backgroundColor: [
+                                                            'rgba(245, 158, 11, 0.88)',
+                                                            'rgba(16, 185, 129, 0.88)',
+                                                        ],
+                                                        borderWidth: 0,
+                                                    },
+                                                ],
+                                            },
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: {
+                                                        position: 'bottom',
+                                                        labels: { color: tickColor, boxWidth: 12 },
+                                                    },
+                                                },
+                                            },
+                                        });
+                                    });
+                                },
+                            }"
+                            x-init="run()"
+                            x-on:livewire:navigating.window="destroyChart()"
+                        >
+                            <canvas x-ref="coordinatorTicketChartCanvas" class="h-full max-h-[18rem] w-full"></canvas>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <flux:button variant="ghost" size="sm" href="{{ route('tickets.index') }}" wire:navigate>
+                    Buka Daftar Tiket
                 </flux:button>
             </div>
         </flux:card>
@@ -60,63 +233,217 @@
         </div>
     @endif
 
-    @if (! empty($showAnalystTicketStatsCard) && $analystTicketAssignedCount !== null && $analystTicketAnalyzedCount !== null && $analystTicketPendingAnalysisCount !== null)
+    @if (! empty($showAnalystTicketStatsCard) && $analystTicketAssignedCount !== null && $analystTicketAnalyzedCount !== null && $analystTicketPendingAnalysisCount !== null && $analystChartPayload !== null)
         <flux:card class="space-y-4 p-5">
             <div>
-                <flux:heading size="lg">Ringkasan analisis</flux:heading>
+                <flux:heading size="lg">Rekap Analisis Tiket</flux:heading>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Penugasan aktif kepada Anda (tiket belum ditutup dan laporan tidak ditolak).</p>
             </div>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div class="rounded-lg border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
-                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Ditugaskan</p>
-                    <p class="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{{ number_format($analystTicketAssignedCount) }}</p>
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Total penugasan aktif</p>
+            <div class="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-stretch">
+                <div class="flex flex-col gap-4">
+                    <div class="rounded-lg border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+                        <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Tiket Diterima</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{{ number_format($analystTicketAssignedCount) }}</p>
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Total tiket yang diterima</p>
+                    </div>
+                    <div class="rounded-lg border border-emerald-200/80 bg-emerald-50/70 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/25">
+                        <p class="text-sm font-medium text-emerald-800 dark:text-emerald-300">Selesai Dianalisis</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-emerald-950 dark:text-emerald-100">{{ number_format($analystTicketAnalyzedCount) }}</p>
+                        <p class="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/90">Tiket diterima dan selesai dianalisis</p>
+                    </div>
+                    <div class="rounded-lg border border-amber-200/80 bg-amber-50/70 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/25">
+                        <p class="text-sm font-medium text-amber-900 dark:text-amber-200">Belum Dianalisis</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-amber-950 dark:text-amber-100">{{ number_format($analystTicketPendingAnalysisCount) }}</p>
+                        <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-200/90">Tiket diterima dan belum dianalisis</p>
+                    </div>
                 </div>
-                <div class="rounded-lg border border-emerald-200/80 bg-emerald-50/70 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/25">
-                    <p class="text-sm font-medium text-emerald-800 dark:text-emerald-300">Selesai dianalisis</p>
-                    <p class="mt-1 text-2xl font-semibold tabular-nums text-emerald-950 dark:text-emerald-100">{{ number_format($analystTicketAnalyzedCount) }}</p>
-                    <p class="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/90">Sudah ada analisis Anda</p>
-                </div>
-                <div class="rounded-lg border border-amber-200/80 bg-amber-50/70 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/25">
-                    <p class="text-sm font-medium text-amber-900 dark:text-amber-200">Belum dianalisis</p>
-                    <p class="mt-1 text-2xl font-semibold tabular-nums text-amber-950 dark:text-amber-100">{{ number_format($analystTicketPendingAnalysisCount) }}</p>
-                    <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-200/90">Belum ada analisis dari Anda</p>
+                <div class="flex min-h-[14rem] flex-col rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-900/30">
+                    <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Grafik Analisis Tiket</p>
+                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Tiket diterima = selesai dianalisis + belum dianalisis (dua kategori terakhir membagi penugasan aktif Anda).</p>
+                    @if ($analystTicketAssignedCount < 1)
+                        <p class="mt-auto py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Belum ada statistik tiket untuk ditampilkan pada grafik.</p>
+                    @else
+                        <div
+                            class="relative mt-3 min-h-[12rem] flex-1 w-full"
+                            wire:key="analyst-ticket-chart-{{ $analystTicketAssignedCount }}-{{ $analystTicketAnalyzedCount }}-{{ $analystTicketPendingAnalysisCount }}"
+                            x-data="{
+                                chart: null,
+                                destroyChart() {
+                                    if (this.chart) {
+                                        this.chart.destroy();
+                                        this.chart = null;
+                                    }
+                                },
+                                run() {
+                                    this.destroyChart();
+                                    this.$nextTick(() => {
+                                        const Chart = window.Chart;
+                                        const canvas = this.$refs.analystTicketChartCanvas;
+                                        const p = {{ \Illuminate\Support\Js::from($analystChartPayload) }};
+                                        if (!Chart || !canvas || !p || !Array.isArray(p.values)) {
+                                            return;
+                                        }
+                                        const isDark = document.documentElement.classList.contains('dark');
+                                        const tickColor = isDark ? '#a1a1aa' : '#52525b';
+                                        const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+                                        this.chart = new Chart(canvas, {
+                                            type: 'bar',
+                                            data: {
+                                                labels: p.labels,
+                                                datasets: [
+                                                    {
+                                                        label: 'Jumlah tiket',
+                                                        data: p.values,
+                                                        backgroundColor: [
+                                                            'rgba(113, 113, 122, 0.82)',
+                                                            'rgba(16, 185, 129, 0.78)',
+                                                            'rgba(245, 158, 11, 0.78)',
+                                                        ],
+                                                        borderRadius: 6,
+                                                    },
+                                                ],
+                                            },
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: { display: false },
+                                                },
+                                                scales: {
+                                                    x: {
+                                                        ticks: { color: tickColor, maxRotation: 45, minRotation: 0 },
+                                                        grid: { display: false },
+                                                    },
+                                                    y: {
+                                                        beginAtZero: true,
+                                                        ticks: { color: tickColor, precision: 0 },
+                                                        grid: { color: gridColor },
+                                                    },
+                                                },
+                                            },
+                                        });
+                                    });
+                                },
+                            }"
+                            x-init="run()"
+                            x-on:livewire:navigating.window="destroyChart()"
+                        >
+                            <canvas x-ref="analystTicketChartCanvas" class="h-full max-h-[20rem] w-full"></canvas>
+                        </div>
+                    @endif
                 </div>
             </div>
             <div class="flex justify-end">
                 <flux:button variant="ghost" size="sm" href="{{ route('tickets.index', ['scope' => 'analyst']) }}" wire:navigate>
-                    Buka daftar analisis
+                    Buka Daftar Analisis
                 </flux:button>
             </div>
         </flux:card>
     @endif
 
-    @if (! empty($showResponderTicketStatsCard) && $responderTicketAssignedCount !== null && $responderTicketCompletedCount !== null && $responderTicketPendingCount !== null)
+    @if (! empty($showResponderTicketStatsCard) && $responderTicketAssignedCount !== null && $responderTicketCompletedCount !== null && $responderTicketPendingCount !== null && $responderChartPayload !== null)
         <flux:card class="space-y-4 p-5">
             <div>
-                <flux:heading size="lg">Ringkasan penanganan</flux:heading>
+                <flux:heading size="lg">Rekap Penanganan Tiket</flux:heading>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Tiket yang ditugaskan kepada Anda setelah ada analisis (fase Analysis, Response, atau Resolution).</p>
             </div>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div class="rounded-lg border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
-                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Ditugaskan</p>
-                    <p class="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{{ number_format($responderTicketAssignedCount) }}</p>
-                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Total dalam antrean Anda</p>
+            <div class="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-stretch">
+                <div class="flex flex-col gap-4">
+                    <div class="rounded-lg border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+                        <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Tiket Diterima</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{{ number_format($responderTicketAssignedCount) }}</p>
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Total tiket yang diterima</p>
+                    </div>
+                    <div class="rounded-lg border border-emerald-200/80 bg-emerald-50/70 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/25">
+                        <p class="text-sm font-medium text-emerald-800 dark:text-emerald-300">Selesai Ditangani</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-emerald-950 dark:text-emerald-100">{{ number_format($responderTicketCompletedCount) }}</p>
+                        <p class="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/90">Tiket diterima dan selesai ditangani</p>
+                    </div>
+                    <div class="rounded-lg border border-amber-200/80 bg-amber-50/70 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/25">
+                        <p class="text-sm font-medium text-amber-900 dark:text-amber-200">Belum Ditangani</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-amber-950 dark:text-amber-100">{{ number_format($responderTicketPendingCount) }}</p>
+                        <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-200/90">Tiket diterima dan belum ditangani</p>
+                    </div>
                 </div>
-                <div class="rounded-lg border border-emerald-200/80 bg-emerald-50/70 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/25">
-                    <p class="text-sm font-medium text-emerald-800 dark:text-emerald-300">Selesai ditangani</p>
-                    <p class="mt-1 text-2xl font-semibold tabular-nums text-emerald-950 dark:text-emerald-100">{{ number_format($responderTicketCompletedCount) }}</p>
-                    <p class="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/90">Sub-status Resolution</p>
-                </div>
-                <div class="rounded-lg border border-amber-200/80 bg-amber-50/70 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-950/25">
-                    <p class="text-sm font-medium text-amber-900 dark:text-amber-200">Belum ditangani</p>
-                    <p class="mt-1 text-2xl font-semibold tabular-nums text-amber-950 dark:text-amber-100">{{ number_format($responderTicketPendingCount) }}</p>
-                    <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-200/90">Analysis atau Response</p>
+                <div class="flex min-h-[14rem] flex-col rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-900/30">
+                    <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Grafik Penanganan Tiket</p>
+                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Tiket diterima = selesai ditangani + belum ditangani (dua kategori terakhir membagi antrean penanganan Anda).</p>
+                    @if ($responderTicketAssignedCount < 1)
+                        <p class="mt-auto py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Belum ada statistik tiket untuk ditampilkan pada grafik.</p>
+                    @else
+                        <div
+                            class="relative mt-3 min-h-[12rem] flex-1 w-full"
+                            wire:key="responder-ticket-chart-{{ $responderTicketAssignedCount }}-{{ $responderTicketCompletedCount }}-{{ $responderTicketPendingCount }}"
+                            x-data="{
+                                chart: null,
+                                destroyChart() {
+                                    if (this.chart) {
+                                        this.chart.destroy();
+                                        this.chart = null;
+                                    }
+                                },
+                                run() {
+                                    this.destroyChart();
+                                    this.$nextTick(() => {
+                                        const Chart = window.Chart;
+                                        const canvas = this.$refs.responderTicketChartCanvas;
+                                        const p = {{ \Illuminate\Support\Js::from($responderChartPayload) }};
+                                        if (!Chart || !canvas || !p || !Array.isArray(p.values)) {
+                                            return;
+                                        }
+                                        const isDark = document.documentElement.classList.contains('dark');
+                                        const tickColor = isDark ? '#a1a1aa' : '#52525b';
+                                        const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+                                        this.chart = new Chart(canvas, {
+                                            type: 'bar',
+                                            data: {
+                                                labels: p.labels,
+                                                datasets: [
+                                                    {
+                                                        label: 'Jumlah tiket',
+                                                        data: p.values,
+                                                        backgroundColor: [
+                                                            'rgba(113, 113, 122, 0.82)',
+                                                            'rgba(16, 185, 129, 0.78)',
+                                                            'rgba(245, 158, 11, 0.78)',
+                                                        ],
+                                                        borderRadius: 6,
+                                                    },
+                                                ],
+                                            },
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: { display: false },
+                                                },
+                                                scales: {
+                                                    x: {
+                                                        ticks: { color: tickColor, maxRotation: 45, minRotation: 0 },
+                                                        grid: { display: false },
+                                                    },
+                                                    y: {
+                                                        beginAtZero: true,
+                                                        ticks: { color: tickColor, precision: 0 },
+                                                        grid: { color: gridColor },
+                                                    },
+                                                },
+                                            },
+                                        });
+                                    });
+                                },
+                            }"
+                            x-init="run()"
+                            x-on:livewire:navigating.window="destroyChart()"
+                        >
+                            <canvas x-ref="responderTicketChartCanvas" class="h-full max-h-[20rem] w-full"></canvas>
+                        </div>
+                    @endif
                 </div>
             </div>
             <div class="flex justify-end">
                 <flux:button variant="ghost" size="sm" href="{{ route('tickets.index', ['scope' => 'responder']) }}" wire:navigate>
-                    Buka daftar penanganan
+                    Buka Daftar Penanganan
                 </flux:button>
             </div>
         </flux:card>

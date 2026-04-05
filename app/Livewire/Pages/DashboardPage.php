@@ -207,6 +207,7 @@ class DashboardPage extends Component
         $analystTicketAssignedCount = null;
         $analystTicketAnalyzedCount = null;
         $analystTicketPendingAnalysisCount = null;
+        $analystChartPayload = null;
         if ($user instanceof User && $user->can('ticket.analyze')) {
             $showAnalystTicketStatsCard = true;
             $baseAnalyst = $this->analystDashboardTicketQuery($user);
@@ -221,6 +222,14 @@ class DashboardPage extends Component
                     $q->where('performed_by', $user->id);
                 })
                 ->count();
+            $analystChartPayload = [
+                'labels' => ['Tiket diterima', 'Selesai dianalisis', 'Belum dianalisis'],
+                'values' => [
+                    $analystTicketAssignedCount,
+                    $analystTicketAnalyzedCount,
+                    $analystTicketPendingAnalysisCount,
+                ],
+            ];
         }
 
         $showPicTicketStatsCard = $user instanceof User && $user->hasRole('pic');
@@ -228,6 +237,7 @@ class DashboardPage extends Component
         $picTicketVerifiedCount = null;
         $picTicketRejectedCount = null;
         $picTicketOnProgressCount = null;
+        $picChartPayload = null;
         if ($showPicTicketStatsCard) {
             $picTicketTotalCount = Ticket::query()->count();
             $picTicketVerifiedCount = Ticket::query()
@@ -239,12 +249,40 @@ class DashboardPage extends Component
             $picTicketOnProgressCount = Ticket::query()
                 ->where('status', Ticket::STATUS_ON_PROGRESS)
                 ->count();
+            $picChartPayload = [
+                'labels' => ['Diverifikasi', 'Ditolak', 'Dalam penanganan'],
+                'values' => [
+                    $picTicketVerifiedCount,
+                    $picTicketRejectedCount,
+                    $picTicketOnProgressCount,
+                ],
+            ];
+        }
+
+        $showCoordinatorTicketStatsCard = $user instanceof User && $user->hasRole('koordinator');
+        $coordinatorTicketTotalCount = null;
+        $coordinatorTicketOpenCount = null;
+        $coordinatorTicketClosedCount = null;
+        $coordinatorChartPayload = null;
+        if ($showCoordinatorTicketStatsCard) {
+            $coordinatorTicketTotalCount = Ticket::query()->count();
+            $coordinatorTicketClosedCount = Ticket::query()
+                ->where('status', Ticket::STATUS_CLOSED)
+                ->count();
+            $coordinatorTicketOpenCount = Ticket::query()
+                ->where('status', '!=', Ticket::STATUS_CLOSED)
+                ->count();
+            $coordinatorChartPayload = [
+                'labels' => ['Tiket dibuka', 'Tiket ditutup'],
+                'values' => [$coordinatorTicketOpenCount, $coordinatorTicketClosedCount],
+            ];
         }
 
         $showResponderTicketStatsCard = false;
         $responderTicketAssignedCount = null;
         $responderTicketCompletedCount = null;
         $responderTicketPendingCount = null;
+        $responderChartPayload = null;
         if ($user instanceof User && $user->can('ticket.respond')) {
             $showResponderTicketStatsCard = true;
             $baseResponder = $this->responderDashboardTicketQuery($user);
@@ -255,6 +293,14 @@ class DashboardPage extends Component
             $responderTicketPendingCount = (clone $baseResponder)
                 ->whereIn('sub_status', [Ticket::SUB_STATUS_ANALYSIS, Ticket::SUB_STATUS_RESPONSE])
                 ->count();
+            $responderChartPayload = [
+                'labels' => ['Tiket diterima', 'Selesai ditangani', 'Belum ditangani'],
+                'values' => [
+                    $responderTicketAssignedCount,
+                    $responderTicketCompletedCount,
+                    $responderTicketPendingCount,
+                ],
+            ];
         }
 
         return view('livewire.pages.dashboard-page', [
@@ -270,15 +316,23 @@ class DashboardPage extends Component
             'analystTicketAssignedCount' => $analystTicketAssignedCount,
             'analystTicketAnalyzedCount' => $analystTicketAnalyzedCount,
             'analystTicketPendingAnalysisCount' => $analystTicketPendingAnalysisCount,
+            'analystChartPayload' => $analystChartPayload,
             'showPicTicketStatsCard' => $showPicTicketStatsCard,
             'picTicketTotalCount' => $picTicketTotalCount,
             'picTicketVerifiedCount' => $picTicketVerifiedCount,
             'picTicketRejectedCount' => $picTicketRejectedCount,
             'picTicketOnProgressCount' => $picTicketOnProgressCount,
+            'picChartPayload' => $picChartPayload,
+            'showCoordinatorTicketStatsCard' => $showCoordinatorTicketStatsCard,
+            'coordinatorTicketTotalCount' => $coordinatorTicketTotalCount,
+            'coordinatorTicketOpenCount' => $coordinatorTicketOpenCount,
+            'coordinatorTicketClosedCount' => $coordinatorTicketClosedCount,
+            'coordinatorChartPayload' => $coordinatorChartPayload,
             'showResponderTicketStatsCard' => $showResponderTicketStatsCard,
             'responderTicketAssignedCount' => $responderTicketAssignedCount,
             'responderTicketCompletedCount' => $responderTicketCompletedCount,
             'responderTicketPendingCount' => $responderTicketPendingCount,
+            'responderChartPayload' => $responderChartPayload,
         ]);
     }
 
