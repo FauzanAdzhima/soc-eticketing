@@ -30,6 +30,22 @@ class DashboardPage extends Component
     /** Toast selamat datang: sekali setelah login / registrasi (lihat AuthenticatedSessionController & RegisteredUserController). */
     public bool $showWelcomeToast = false;
 
+    public const PIMPINAN_DIM_SEVERITY = 'severity';
+
+    public const PIMPINAN_DIM_CATEGORY = 'category';
+
+    public const PIMPINAN_SORT_COUNT_DESC = 'count_desc';
+
+    public const PIMPINAN_SORT_LABEL_ASC = 'label_asc';
+
+    public const PIMPINAN_CATEGORY_CHART_MAX_BUCKETS = 15;
+
+    /** @var self::PIMPINAN_DIM_* */
+    public string $pimpinanChartDimension = self::PIMPINAN_DIM_SEVERITY;
+
+    /** @var self::PIMPINAN_SORT_* */
+    public string $pimpinanChartSort = self::PIMPINAN_SORT_COUNT_DESC;
+
     public function mount(): void
     {
         $this->showWelcomeToast = (bool) session()->pull('show_dashboard_welcome_once', false);
@@ -84,6 +100,20 @@ class DashboardPage extends Component
     {
         if (! in_array($this->opdTopLimit, self::OPD_TOP_LIMIT_OPTIONS, true)) {
             $this->opdTopLimit = 5;
+        }
+    }
+
+    public function updatedPimpinanChartDimension(string $value): void
+    {
+        if (! in_array($value, [self::PIMPINAN_DIM_SEVERITY, self::PIMPINAN_DIM_CATEGORY], true)) {
+            $this->pimpinanChartDimension = self::PIMPINAN_DIM_SEVERITY;
+        }
+    }
+
+    public function updatedPimpinanChartSort(string $value): void
+    {
+        if (! in_array($value, [self::PIMPINAN_SORT_COUNT_DESC, self::PIMPINAN_SORT_LABEL_ASC], true)) {
+            $this->pimpinanChartSort = self::PIMPINAN_SORT_COUNT_DESC;
         }
     }
 
@@ -303,6 +333,18 @@ class DashboardPage extends Component
             ];
         }
 
+        $showPimpinanTicketStatsCard = $user instanceof User && $user->hasRole('pimpinan');
+        $pimpinanTicketIncomingCount = null;
+        $pimpinanTicketCompletedCount = null;
+        $pimpinanDistributionChartPayload = null;
+        if ($showPimpinanTicketStatsCard) {
+            $pimpinanTicketIncomingCount = Ticket::query()->count();
+            $pimpinanTicketCompletedCount = Ticket::query()
+                ->where('status', Ticket::STATUS_CLOSED)
+                ->count();
+            $pimpinanDistributionChartPayload = $this->buildPimpinanDistributionChartPayload();
+        }
+
         return view('livewire.pages.dashboard-page', [
             'stats' => $stats,
             'showChartSection' => $showChartSection,
@@ -333,6 +375,10 @@ class DashboardPage extends Component
             'responderTicketCompletedCount' => $responderTicketCompletedCount,
             'responderTicketPendingCount' => $responderTicketPendingCount,
             'responderChartPayload' => $responderChartPayload,
+            'showPimpinanTicketStatsCard' => $showPimpinanTicketStatsCard,
+            'pimpinanTicketIncomingCount' => $pimpinanTicketIncomingCount,
+            'pimpinanTicketCompletedCount' => $pimpinanTicketCompletedCount,
+            'pimpinanDistributionChartPayload' => $pimpinanDistributionChartPayload,
         ]);
     }
 
@@ -370,5 +416,152 @@ class DashboardPage extends Component
                 Ticket::SUB_STATUS_RESPONSE,
                 Ticket::SUB_STATUS_RESOLUTION,
             ]);
+    }
+
+    /**
+     * Grafik batang horizontal: distribusi tiket (semua tiket aktif di basis) per keparahan atau kategori.
+     *
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    private function buildPimpinanDistributionChartPayload(): array
+    {
+        if ($this->pimpinanChartDimension === self::PIMPINAN_DIM_CATEGORY) {
+            return $this->buildPimpinanCategoryDistributionChartPayload();
+        }
+
+        return $this->buildPimpinanSeverityDistributionChartPayload();
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function pimpinanSeverityGroupedCounts(): array
+    {
+        $rows = Ticket::query()
+            ->select('incident_severity')
+            ->selectRaw('count(*) as aggregate')
+            ->groupBy('incident_severity')
+            ->get();
+
+        $merged = [];
+        foreach ($rows as $row) {
+            $label = $this->normalizePimpinanSeverityBucket($row->incident_severity);
+            $merged[$label] = ($merged[$label] ?? 0) + (int) $row->aggregate;
+        }
+
+        return $merged;
+    }
+
+    private function normalizePimpinanSeverityBucket(mixed $raw): string
+    {
+        if ($raw === null) {
+            return 'Tidak diisi';
+        }
+        $t = trim((string) $raw);
+        if ($t === '') {
+            return 'Tidak diisi';
+        }
+
+        return match (strtolower($t)) {
+            'critical' => 'Critical',
+            'high' => 'High',
+            'medium' => 'Medium',
+            'low' => 'Low',
+            default => $t,
+        };
+    }
+
+    private function pimpinanSeverityLadderRank(string $label): int
+    {
+        return match ($label) {
+            'Critical' => 0,
+            'High' => 1,
+            'Medium' => 2,
+            'Low' => 3,
+            'Tidak diisi' => 99,
+            default => 50,
+        };
+    }
+
+    /**
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    private function buildPimpinanSeverityDistributionChartPayload(): array
+    {
+        $pairs = collect($this->pimpinanSeverityGroupedCounts())
+            ->map(fn (int $count, string $label) => ['label' => $label, 'count' => $count])
+            ->values();
+
+        if ($this->pimpinanChartSort === self::PIMPINAN_SORT_COUNT_DESC) {
+            $pairs = $pairs->sortByDesc('count')->values();
+        } else {
+            $pairs = $pairs->sort(function (array $a, array $b): int {
+                $ra = $this->pimpinanSeverityLadderRank($a['label']);
+                $rb = $this->pimpinanSeverityLadderRank($b['label']);
+                if ($ra !== $rb) {
+                    return $ra <=> $rb;
+                }
+
+                return strcasecmp($a['label'], $b['label']);
+            })->values();
+        }
+
+        return [
+            'labels' => $pairs->pluck('label')->all(),
+            'values' => $pairs->pluck('count')->map(fn ($c) => (int) $c)->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function pimpinanCategoryGroupedCounts(): array
+    {
+        $rows = Ticket::query()
+            ->leftJoin('incident_categories', 'tickets.incident_category_id', '=', 'incident_categories.id')
+            ->selectRaw('incident_categories.name as cname')
+            ->selectRaw('count(*) as aggregate')
+            ->groupBy('incident_categories.name')
+            ->get();
+
+        $merged = [];
+        foreach ($rows as $row) {
+            $label = ($row->cname === null || trim((string) $row->cname) === '')
+                ? 'Tanpa kategori'
+                : (string) $row->cname;
+            $merged[$label] = ($merged[$label] ?? 0) + (int) $row->aggregate;
+        }
+
+        return $merged;
+    }
+
+    /**
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    private function buildPimpinanCategoryDistributionChartPayload(): array
+    {
+        $pairs = collect($this->pimpinanCategoryGroupedCounts())
+            ->map(fn (int $count, string $label) => ['label' => $label, 'count' => $count])
+            ->values();
+
+        if ($this->pimpinanChartSort === self::PIMPINAN_SORT_COUNT_DESC) {
+            $pairs = $pairs->sortByDesc('count')->values();
+        } else {
+            $pairs = $pairs->sortBy(fn (array $p) => Str::lower($p['label']))->values();
+        }
+
+        if ($pairs->count() > self::PIMPINAN_CATEGORY_CHART_MAX_BUCKETS) {
+            $head = $pairs->take(self::PIMPINAN_CATEGORY_CHART_MAX_BUCKETS);
+            $tailSum = (int) $pairs->slice(self::PIMPINAN_CATEGORY_CHART_MAX_BUCKETS)->sum('count');
+            $pairs = $head;
+            if ($tailSum > 0) {
+                $pairs = $pairs->concat([['label' => 'Lainnya', 'count' => $tailSum]])->values();
+            }
+        }
+
+        return [
+            'labels' => $pairs->pluck('label')->all(),
+            'values' => $pairs->pluck('count')->map(fn ($c) => (int) $c)->all(),
+        ];
     }
 }

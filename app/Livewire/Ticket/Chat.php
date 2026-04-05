@@ -55,6 +55,10 @@ class Chat extends Component
             abort(403);
         }
 
+        if (! $user->can('ticket.chat.view')) {
+            abort(403);
+        }
+
         $this->authorize('view', $this->ticket);
         $this->syncDefaultVisibility();
     }

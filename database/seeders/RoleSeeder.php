@@ -115,7 +115,7 @@ class RoleSeeder extends Seeder
                 'desc' => 'Pimpinan Organisasi, menerima laporan penanganan insiden',
                 'permissions' => [
                     'ticket.view',
-                    'ticket.chat.view',
+                    'ticket.view_all',
                 ],
             ],
         ];

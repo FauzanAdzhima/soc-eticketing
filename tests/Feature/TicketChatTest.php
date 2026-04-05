@@ -159,6 +159,40 @@ class TicketChatTest extends TestCase
         );
     }
 
+    public function test_pimpinan_cannot_access_ticket_chat_route(): void
+    {
+        $pimpinan = User::factory()->create();
+        $pimpinan->assignRole('pimpinan');
+        $ticket = $this->makeTicket();
+
+        $this->actingAs($pimpinan)
+            ->get(route('tickets.chat', $ticket))
+            ->assertForbidden();
+    }
+
+    public function test_pimpinan_cannot_download_staff_chat_attachment(): void
+    {
+        $pimpinan = User::factory()->create();
+        $pimpinan->assignRole('pimpinan');
+        $ticket = $this->makeTicket();
+
+        $pic = User::factory()->create();
+        $pic->assignRole('pic');
+
+        $message = TicketMessage::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $pic->id,
+            'guest_name' => null,
+            'visibility' => TicketMessage::VISIBILITY_EXTERNAL,
+            'message' => 'with attachment',
+            'attachment_path' => 'ticket-chat/'.$ticket->public_id.'/fake.pdf',
+        ]);
+
+        $this->actingAs($pimpinan)
+            ->get(route('tickets.chat.attachment.show', [$ticket, $message]))
+            ->assertForbidden();
+    }
+
     public function test_send_message_rejects_whitespace_only_body(): void
     {
         $ticket = $this->makeTicket();

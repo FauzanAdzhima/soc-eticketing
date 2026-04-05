@@ -210,6 +210,148 @@
         </flux:card>
     @endif
 
+    @if (! empty($showPimpinanTicketStatsCard) && $pimpinanTicketIncomingCount !== null && $pimpinanTicketCompletedCount !== null && $pimpinanDistributionChartPayload !== null)
+        <flux:card class="space-y-4 p-5">
+            <div>
+                <flux:heading size="lg">Rekap Pimpinan</flux:heading>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Ringkasan seluruh tiket di sistem untuk keperluan monitoring.</p>
+            </div>
+            <div class="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-stretch">
+                <div class="flex flex-col gap-4">
+                    <div class="rounded-lg border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+                        <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Tiket Masuk</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{{ number_format($pimpinanTicketIncomingCount) }}</p>
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Total tiket tercatat (termasuk yang masih berjalan).</p>
+                    </div>
+                    <div class="rounded-lg border border-emerald-200/80 bg-emerald-50/70 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/25">
+                        <p class="text-sm font-medium text-emerald-800 dark:text-emerald-300">Tiket Selesai Ditangani</p>
+                        <p class="mt-1 text-2xl font-semibold tabular-nums text-emerald-950 dark:text-emerald-100">{{ number_format($pimpinanTicketCompletedCount) }}</p>
+                        <p class="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/90">Tiket yang sudah ditutup</p>
+                    </div>
+                </div>
+                <div class="flex min-h-[14rem] flex-col rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-900/30">
+                    <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Grafik Tiket</p>
+                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Jumlah tiket per kelompok; ubah aspek dan urutan di bawah.</p>
+                    <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+                        <label class="flex min-w-0 flex-1 flex-col gap-1 text-xs text-zinc-600 dark:text-zinc-400">
+                            <span class="font-medium text-zinc-700 dark:text-zinc-300">Kelompokkan Tiket</span>
+                            <select
+                                wire:model.live="pimpinanChartDimension"
+                                class="rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                            >
+                                <option value="severity">Tingkat Keparahan</option>
+                                <option value="category">Kategori Insiden</option>
+                            </select>
+                        </label>
+                        <label class="flex min-w-0 flex-1 flex-col gap-1 text-xs text-zinc-600 dark:text-zinc-400">
+                            <span class="font-medium text-zinc-700 dark:text-zinc-300">Urutkan Tiket</span>
+                            <select
+                                wire:model.live="pimpinanChartSort"
+                                class="rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                            >
+                                <option value="count_desc">Jumlah tertinggi dulu</option>
+                                <option value="label_asc">
+                                    @if ($pimpinanChartDimension === 'category')
+                                        Nama kategori (A–Z)
+                                    @else
+                                        Skala keparahan (Critical → Low)
+                                    @endif
+                                </option>
+                            </select>
+                        </label>
+                    </div>
+                    @if ($pimpinanTicketIncomingCount < 1)
+                        <p class="mt-auto py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Belum ada tiket untuk ditampilkan pada grafik.</p>
+                    @elseif (($pimpinanDistributionChartPayload['labels'] ?? []) === [])
+                        <p class="mt-auto py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Tidak ada data untuk grafik ini.</p>
+                    @else
+                        <div
+                            class="relative mt-3 min-h-[14rem] flex-1 w-full"
+                            wire:key="pimpinan-incoming-{{ $pimpinanChartDimension }}-{{ $pimpinanChartSort }}-{{ array_sum($pimpinanDistributionChartPayload['values']) }}-{{ count($pimpinanDistributionChartPayload['labels']) }}"
+                            x-data="{
+                                chart: null,
+                                destroyChart() {
+                                    if (this.chart) {
+                                        this.chart.destroy();
+                                        this.chart = null;
+                                    }
+                                },
+                                run() {
+                                    this.destroyChart();
+                                    this.$nextTick(() => {
+                                        const Chart = window.Chart;
+                                        const canvas = this.$refs.pimpinanDistributionChartCanvas;
+                                        const p = {{ \Illuminate\Support\Js::from($pimpinanDistributionChartPayload) }};
+                                        if (!Chart || !canvas || !p || !Array.isArray(p.labels) || !Array.isArray(p.values)) {
+                                            return;
+                                        }
+                                        const isDark = document.documentElement.classList.contains('dark');
+                                        const tickColor = isDark ? '#a1a1aa' : '#52525b';
+                                        const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+                                        const palette = [
+                                            'rgba(59, 130, 246, 0.78)',
+                                            'rgba(16, 185, 129, 0.78)',
+                                            'rgba(245, 158, 11, 0.78)',
+                                            'rgba(239, 68, 68, 0.78)',
+                                            'rgba(139, 92, 246, 0.78)',
+                                            'rgba(236, 72, 153, 0.78)',
+                                            'rgba(20, 184, 166, 0.78)',
+                                            'rgba(99, 102, 241, 0.78)',
+                                        ];
+                                        const bg = p.labels.map((_, i) => palette[i % palette.length]);
+                                        this.chart = new Chart(canvas, {
+                                            type: 'bar',
+                                            data: {
+                                                labels: p.labels,
+                                                datasets: [
+                                                    {
+                                                        label: 'Jumlah tiket',
+                                                        data: p.values,
+                                                        backgroundColor: bg,
+                                                        borderRadius: 4,
+                                                    },
+                                                ],
+                                            },
+                                            options: {
+                                                indexAxis: 'y',
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: { legend: { display: false } },
+                                                scales: {
+                                                    x: {
+                                                        beginAtZero: true,
+                                                        ticks: { color: tickColor, precision: 0 },
+                                                        grid: { color: gridColor },
+                                                    },
+                                                    y: {
+                                                        ticks: { color: tickColor },
+                                                        grid: { display: false },
+                                                    },
+                                                },
+                                            },
+                                        });
+                                    });
+                                },
+                            }"
+                            x-init="run()"
+                            x-on:livewire:navigating.window="destroyChart()"
+                        >
+                            <canvas x-ref="pimpinanDistributionChartCanvas" class="h-full max-h-[22rem] w-full"></canvas>
+                        </div>
+                    @endif
+                    @if ($pimpinanChartDimension === 'category')
+                        <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Maksimal {{ \App\Livewire\Pages\DashboardPage::PIMPINAN_CATEGORY_CHART_MAX_BUCKETS }} kategori ditampilkan; sisanya digabung ke &quot;Lainnya&quot;.</p>
+                    @endif
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <flux:button variant="ghost" size="sm" href="{{ route('tickets.index') }}" wire:navigate>
+                    Buka Daftar Tiket
+                </flux:button>
+            </div>
+        </flux:card>
+    @endif
+
     @if ($showAnalystTicketStatsCard ?? false)
         <div wire:poll.20s="refreshDashboardAssignmentSignal" class="hidden" aria-hidden="true"></div>
     @endif

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Ticket;
 use App\Models\TicketMessage;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
@@ -13,6 +14,9 @@ class TicketChatAttachmentController extends Controller
 {
     public function showStaff(Ticket $ticket, TicketMessage $message): BinaryFileResponse
     {
+        $user = Auth::user();
+        abort_unless($user !== null && $user->can('ticket.chat.view'), 403);
+
         $this->authorize('view', $ticket);
         $this->assertMessageBelongsToTicketWithAttachment($ticket, $message);
 

@@ -14,6 +14,7 @@ class TicketChatPage extends Component
 
     public function mount(Ticket $ticket): void
     {
+        $this->authorize('ticket.chat.view');
         $this->authorize('view', $ticket);
         $this->ticket = $ticket;
     }
