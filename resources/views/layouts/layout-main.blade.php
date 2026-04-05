@@ -19,7 +19,8 @@
     @auth
         <meta name="user-id" content="{{ auth()->id() }}">
     @endauth
-    <title>{{ $title ?? 'CSIRT' }}</title>
+    <title>{{ $title ?? 'CSIRT - Provinsi Kepulauan Riau' }}</title>
+    @include('partials.favicon')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
