@@ -10,4 +10,14 @@ return [
         'On Progress' => 'On Progress',
         'Report Rejected' => 'Report Rejected',
     ],
+
+    'sub_status_labels' => [
+        'Triage' => 'Triage',
+        'Analysis' => 'Analysis',
+        'Response' => 'Response',
+        'Resolution' => 'Resolution',
+    ],
+
+    'chat_field_status' => 'Status',
+    'chat_field_sub_status' => 'Sub-status',
 ];

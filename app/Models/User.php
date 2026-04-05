@@ -57,6 +57,11 @@ class User extends Authenticatable
         return $this->belongsTo(Organization::class);
     }
 
+    public function ticketMessages()
+    {
+        return $this->hasMany(TicketMessage::class);
+    }
+
     /**
      * Analis murni: punya antrean penugasan saja di navigasi (tanpa menu Daftar Tiket utama PIC/koordinator).
      */

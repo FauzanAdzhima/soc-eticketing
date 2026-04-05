@@ -40,6 +40,8 @@ class Ticket extends Model
         'handling_validated_at',
         'handling_validated_by',
         'reopened_at',
+        'reporter_chat_token_hash',
+        'reporter_chat_token_created_at',
     ];
 
     /**
@@ -52,6 +54,7 @@ class Ticket extends Model
         'closed_at' => 'datetime',
         'handling_validated_at' => 'datetime',
         'reopened_at' => 'datetime',
+        'reporter_chat_token_created_at' => 'datetime',
     ];
 
     public function organization()
@@ -92,6 +95,11 @@ class Ticket extends Model
     public function logs()
     {
         return $this->hasMany(TicketLog::class);
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(TicketMessage::class)->orderBy('created_at');
     }
 
     public function ticketReport()

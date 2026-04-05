@@ -173,6 +173,40 @@
         </details>
     </flux:card>
 
+    @can('ticket.chat.view')
+        <section id="diskusi-tiket" class="scroll-mt-6" aria-labelledby="diskusi-tiket-heading">
+            <flux:card class="overflow-hidden p-0">
+                <details class="group border-0">
+                    <summary
+                        class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-left outline-none transition hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary [&::-webkit-details-marker]:hidden"
+                    >
+                        <div class="min-w-0 flex-1">
+                            <span class="block text-sm font-semibold text-foreground" id="diskusi-tiket-heading">Diskusi / Chat</span>
+                            <span class="mt-0.5 block text-xs font-normal text-muted-foreground">Komunikasi dengan pelapor dan catatan tim (internal)</span>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-2" onclick="event.stopPropagation()">
+                            <flux:button type="button" size="sm" variant="ghost" href="{{ route('tickets.chat', $ticket) }}" wire:navigate>
+                                Buka layar penuh
+                            </flux:button>
+                        </div>
+                        <svg
+                            class="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                        </svg>
+                    </summary>
+                    <div class="border-t border-border p-4 sm:p-5">
+                        @livewire('ticket.chat', ['ticket' => $ticket], key('ticket-chat-analysis-' . $ticket->id))
+                    </div>
+                </details>
+            </flux:card>
+        </section>
+    @endcan
+
     <section id="riwayat-analisis" class="scroll-mt-6 space-y-4" aria-labelledby="riwayat-analisis-heading">
         <flux:heading size="lg" id="riwayat-analisis-heading">Riwayat Analisis</flux:heading>
         @if ($ticket->analyses->isEmpty())

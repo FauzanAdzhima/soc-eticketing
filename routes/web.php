@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TicketChatAttachmentController;
 use App\Http\Controllers\TicketEvidenceController;
 use App\Http\Controllers\TicketReportImageController;
 use App\Livewire\Pages\Admin\IncidentCategories\IndexPage as AdminIncidentCategoriesIndexPage;
@@ -10,9 +11,11 @@ use App\Livewire\Pages\Admin\Users\IndexPage as AdminUsersIndexPage;
 use App\Livewire\Pages\DashboardPage;
 use App\Livewire\Pages\ProfilePage;
 use App\Livewire\Pages\Tickets\IndexPage as TicketsIndexPage;
+use App\Livewire\Pages\Tickets\TicketChatPage;
 use App\Livewire\Pages\Tickets\TicketCoordinatorReportEditorPage;
 use App\Livewire\Pages\Tickets\TicketAnalysisPage;
 use App\Livewire\Pages\Tickets\TicketRespondPage;
+use App\Livewire\Pages\Tickets\TrackTicketChatPage;
 use App\Models\Ticket;
 use App\Models\TicketReport;
 use Illuminate\Support\Facades\Auth;
@@ -33,6 +36,16 @@ Route::get('/report/category', function () {
 
 Route::get('/dashboard', DashboardPage::class)->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::get('/tickets/track/{ticket}/{token}/messages/{message}/attachment', [TicketChatAttachmentController::class, 'showGuest'])
+    ->middleware('throttle:120,1')
+    ->where('token', '[^/]+')
+    ->name('tickets.track.chat.attachment');
+
+Route::get('/tickets/track/{ticket}/{token}', TrackTicketChatPage::class)
+    ->middleware('throttle:30,1')
+    ->where('token', '[^/]+')
+    ->name('tickets.track.chat');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', ProfilePage::class)->name('profile');
     Route::get('/profile/edit', function () {
@@ -40,6 +53,14 @@ Route::middleware('auth')->group(function () {
     })->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::get('/tickets/{ticket}/chat/messages/{message}/attachment', [TicketChatAttachmentController::class, 'showStaff'])
+        ->middleware('verified')
+        ->name('tickets.chat.attachment.show');
+
+    Route::get('/tickets/{ticket}/chat', TicketChatPage::class)
+        ->middleware(['verified', 'can:ticket.chat.view'])
+        ->name('tickets.chat');
 
     Route::get('/tickets', TicketsIndexPage::class)
         ->middleware('can:ticket.view')

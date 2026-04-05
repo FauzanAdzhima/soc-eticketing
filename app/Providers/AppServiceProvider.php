@@ -26,8 +26,15 @@ class AppServiceProvider extends ServiceProvider
 
         // Prevent temporary upload token from expiring too quickly
         // when users spend longer time filling the incident form.
+        // Allow signed temporary URLs for PDF preview (e.g. chat composer).
+        $previewMimes = config('livewire.temporary_file_upload.preview_mimes', []);
+        if (is_array($previewMimes) && ! in_array('pdf', $previewMimes, true)) {
+            $previewMimes[] = 'pdf';
+        }
+
         config([
             'livewire.temporary_file_upload.max_upload_time' => 30,
+            'livewire.temporary_file_upload.preview_mimes' => $previewMimes,
         ]);
     }
 }

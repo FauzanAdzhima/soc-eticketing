@@ -472,56 +472,65 @@ input.ticket-editor-select[data-editor-font-size]::-webkit-list-button {
 
 /*
  * Scrollbar tema semantic: track ~ surface (putih/terang di light mode),
- * thumb ~ border. Dipakai form insiden publik + daftar tiket (PIC).
+ * thumb ~ border. Dipakai form insiden publik + daftar tiket (PIC) + chat tiket.
  */
 .incident-modal-form-scroll,
-.ticket-list-scrollbar {
+.ticket-list-scrollbar,
+.ticket-chat-scroll {
     scrollbar-width: thin;
     scrollbar-color: rgb(var(--border)) rgb(var(--surface));
 }
 
 .incident-modal-form-scroll::-webkit-scrollbar,
-.ticket-list-scrollbar::-webkit-scrollbar {
+.ticket-list-scrollbar::-webkit-scrollbar,
+.ticket-chat-scroll::-webkit-scrollbar {
     width: 10px;
     height: 10px;
 }
 
 .incident-modal-form-scroll::-webkit-scrollbar-track,
-.ticket-list-scrollbar::-webkit-scrollbar-track {
+.ticket-list-scrollbar::-webkit-scrollbar-track,
+.ticket-chat-scroll::-webkit-scrollbar-track {
     background: rgb(var(--surface));
     border-radius: 9999px;
 }
 
 .incident-modal-form-scroll::-webkit-scrollbar-thumb,
-.ticket-list-scrollbar::-webkit-scrollbar-thumb {
+.ticket-list-scrollbar::-webkit-scrollbar-thumb,
+.ticket-chat-scroll::-webkit-scrollbar-thumb {
     background: rgb(var(--border));
     border-radius: 9999px;
     border: 2px solid rgb(var(--surface));
 }
 
 .incident-modal-form-scroll::-webkit-scrollbar-thumb:hover,
-.ticket-list-scrollbar::-webkit-scrollbar-thumb:hover {
+.ticket-list-scrollbar::-webkit-scrollbar-thumb:hover,
+.ticket-chat-scroll::-webkit-scrollbar-thumb:hover {
     background: rgb(var(--border-strong));
 }
 
 .dark .incident-modal-form-scroll,
-.dark .ticket-list-scrollbar {
+.dark .ticket-list-scrollbar,
+.dark .ticket-chat-scroll {
     scrollbar-color: rgb(var(--border-strong)) rgb(var(--muted));
 }
 
 .dark .incident-modal-form-scroll::-webkit-scrollbar-track,
-.dark .ticket-list-scrollbar::-webkit-scrollbar-track {
+.dark .ticket-list-scrollbar::-webkit-scrollbar-track,
+.dark .ticket-chat-scroll::-webkit-scrollbar-track {
     background: rgb(var(--muted));
 }
 
 .dark .incident-modal-form-scroll::-webkit-scrollbar-thumb,
-.dark .ticket-list-scrollbar::-webkit-scrollbar-thumb {
+.dark .ticket-list-scrollbar::-webkit-scrollbar-thumb,
+.dark .ticket-chat-scroll::-webkit-scrollbar-thumb {
     background: rgb(var(--border-strong));
     border: 2px solid rgb(var(--muted));
 }
 
 .dark .incident-modal-form-scroll::-webkit-scrollbar-thumb:hover,
-.dark .ticket-list-scrollbar::-webkit-scrollbar-thumb:hover {
+.dark .ticket-list-scrollbar::-webkit-scrollbar-thumb:hover,
+.dark .ticket-chat-scroll::-webkit-scrollbar-thumb:hover {
     background: rgb(113 113 122);
 }
 

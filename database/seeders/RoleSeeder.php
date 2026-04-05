@@ -46,6 +46,9 @@ class RoleSeeder extends Seeder
             'ticket.validate_handling',
             'ticket.reopen_closed',
             'ticket.incident_report.manage',
+            'ticket.chat.view',
+            'ticket.chat.send_external',
+            'ticket.chat.send_internal',
             'rbac.user_role.assign',
             'rbac.user_role.revoke',
             'rbac.user_role.audit',
@@ -66,6 +69,9 @@ class RoleSeeder extends Seeder
                     'ticket.create.pic',
                     'ticket.view',
                     'ticket.assign',
+                    'ticket.chat.view',
+                    'ticket.chat.send_external',
+                    'ticket.chat.send_internal',
                 ],
             ],
             'analis' => [
@@ -74,6 +80,9 @@ class RoleSeeder extends Seeder
                     'ticket.view',
                     'ticket.analyze',
                     'ticket.update_status',
+                    'ticket.chat.view',
+                    'ticket.chat.send_external',
+                    'ticket.chat.send_internal',
                 ],
             ],
             'responder' => [
@@ -82,6 +91,9 @@ class RoleSeeder extends Seeder
                     'ticket.view',
                     'ticket.respond',
                     'ticket.update_status',
+                    'ticket.chat.view',
+                    'ticket.chat.send_external',
+                    'ticket.chat.send_internal',
                 ],
             ],
             'koordinator' => [
@@ -94,12 +106,16 @@ class RoleSeeder extends Seeder
                     'ticket.validate_handling',
                     'ticket.reopen_closed',
                     'ticket.incident_report.manage',
+                    'ticket.chat.view',
+                    'ticket.chat.send_external',
+                    'ticket.chat.send_internal',
                 ],
             ],
             'pimpinan' => [
                 'desc' => 'Pimpinan Organisasi, menerima laporan penanganan insiden',
                 'permissions' => [
                     'ticket.view',
+                    'ticket.chat.view',
                 ],
             ],
         ];

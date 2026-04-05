@@ -810,6 +810,19 @@
                     </div>
                 </details>
 
+                @can('ticket.chat.view')
+                    <div class="px-1">
+                        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <flux:heading size="lg">Diskusi / Chat</flux:heading>
+                            <flux:button type="button" size="sm" variant="ghost" href="{{ route('tickets.chat', $detailTicket) }}"
+                                wire:navigate>
+                                Buka layar penuh
+                            </flux:button>
+                        </div>
+                        @livewire('ticket.chat', ['ticket' => $detailTicket], key('ticket-chat-detail-' . $detailTicket->id))
+                    </div>
+                @endcan
+
                 @can('verifyReport', $detailTicket)
                     <flux:card class="space-y-4 border-dashed border-amber-200 p-4 sm:p-5 dark:border-amber-800/50">
                         <div class="space-y-3">
