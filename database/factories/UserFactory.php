@@ -27,7 +27,7 @@ class UserFactory extends Factory
     {
         return [
             // 'public_id' => Str::uuid(),
-            'public_id' => 'USR-' . $this->faker->unique()->bothify('##??'),
+            'public_id' => 'USR-' . fake()->unique()->bothify('##??'),
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
