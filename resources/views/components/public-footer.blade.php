@@ -4,7 +4,7 @@
         <div class="mx-auto max-w-7xl">
             <div class="grid gap-10 lg:grid-cols-12">
                 <div class="lg:col-span-7">
-                    <h3 class="text-2xl font-semibold md:text-3xl">Computer Security Incident Response Team</h3>
+                    <h3 class="text-2xl font-semibold md:text-3xl">Kepriprov-CSIRT</h3>
                     <p class="mt-5 max-w-3xl text-sm leading-7 text-primary-foreground/80 md:text-base">
                         CSIRT Provinsi Kepulauan Riau hadir sebagai garda depan respons insiden keamanan siber untuk
                         mendukung layanan publik yang tangguh, aman, dan terintegrasi.
@@ -67,11 +67,6 @@
         <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 lg:flex-row">
             <div class="text-center text-sm font-normal leading-relaxed text-primary-foreground/80 lg:text-left">
                 <p>CSIRT - Provinsi Kepulauan Riau © 2026. Hak Cipta dilindungi Undang-undang.</p>
-                <p class="mt-1">
-                    Designed & Developed by
-                    <a href="https://kiis.kominfo.kepriprov.go.id/tim" target="_blank"
-                        class="font-medium text-primary-foreground/90 transition hover:text-primary-foreground">Tim KIIS Kominfo Kepri</a>
-                </p>
             </div>
             <div class="flex items-center gap-2">
                 <a href="https://csirt.kepriprov.go.id/" target="_blank" rel="noopener noreferrer"
