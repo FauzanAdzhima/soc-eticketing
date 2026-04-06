@@ -10,9 +10,9 @@
 
         <section id="section-ticket" class="overflow-hidden">
             <div class="text-center font-sans">
-                <flux:heading size="xl" class="font-oswald tracking-wide">TICKETING KEPRIPROV-CSIRT</flux:heading>
+                <flux:heading size="xl" class="font-oswald tracking-wide">TICKETING KepriProv-CSIRT</flux:heading>
                 <flux:text class="mx-auto mt-4 max-w-3xl font-sans">
-                    Selamat Datang di Pusat Bantuan Pelaporan Insiden Siber Kepriprov-CSIRT.
+                    Selamat Datang di Pusat Bantuan Pelaporan Insiden Siber KepriProv-CSIRT.
                 </flux:text>
             </div>
 

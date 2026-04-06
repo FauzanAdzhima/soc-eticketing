@@ -4,9 +4,9 @@
         <div class="mx-auto max-w-7xl">
             <div class="grid gap-10 lg:grid-cols-12">
                 <div class="lg:col-span-7">
-                    <h3 class="text-2xl font-semibold md:text-3xl">Kepriprov-CSIRT</h3>
+                    <h3 class="text-2xl font-semibold md:text-3xl">KepriProv-CSIRT</h3>
                     <p class="mt-5 max-w-3xl text-sm leading-7 text-primary-foreground/80 md:text-base">
-                        CSIRT Provinsi Kepulauan Riau hadir sebagai garda depan respons insiden keamanan siber untuk
+                        KepriProv-CSIRT hadir sebagai garda depan respons insiden keamanan siber di Lingkungan Pemerintah Provinsi Kepulauan Riau untuk
                         mendukung layanan publik yang tangguh, aman, dan terintegrasi.
                     </p>
                 </div>
@@ -66,7 +66,7 @@
     <div class="bg-primary-active px-4 py-6 text-primary-foreground">
         <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 lg:flex-row">
             <div class="text-center text-sm font-normal leading-relaxed text-primary-foreground/80 lg:text-left">
-                <p>CSIRT - Provinsi Kepulauan Riau © 2026. Hak Cipta dilindungi Undang-undang.</p>
+                <p>KepriProv-CSIRT © 2026. Hak Cipta dilindungi Undang-undang.</p>
             </div>
             <div class="flex items-center gap-2">
                 <a href="https://csirt.kepriprov.go.id/" target="_blank" rel="noopener noreferrer"
