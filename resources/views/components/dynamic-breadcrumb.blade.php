@@ -6,7 +6,7 @@
 @php
     $isAuthenticated = auth()->check();
     $homeRoute = $isAuthenticated ? route('dashboard') : route('home');
-    $homeLabel = $isAuthenticated ? 'Dashboard' : 'Beranda';
+    $homeLabel = $isAuthenticated ? 'Dashboard' : 'Menu Utama';
 @endphp
 
 <nav aria-label="Breadcrumb" class="mb-5">

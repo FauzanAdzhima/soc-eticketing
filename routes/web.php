@@ -16,6 +16,7 @@ use App\Livewire\Pages\Tickets\TicketCoordinatorReportEditorPage;
 use App\Livewire\Pages\Tickets\TicketAnalysisPage;
 use App\Livewire\Pages\Tickets\TicketRespondPage;
 use App\Livewire\Pages\Tickets\TrackTicketChatPage;
+use App\Livewire\Pages\Tickets\TrackTicketSearchPage;
 use App\Models\Ticket;
 use App\Models\TicketReport;
 use Illuminate\Support\Facades\Auth;
@@ -35,6 +36,10 @@ Route::get('/report/category', function () {
 })->name('ticket.create');
 
 Route::get('/dashboard', DashboardPage::class)->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('/tickets/track', TrackTicketSearchPage::class)
+    ->middleware('throttle:60,1')
+    ->name('tickets.track.search');
 
 Route::get('/tickets/track/{ticket}/{token}/messages/{message}/attachment', [TicketChatAttachmentController::class, 'showGuest'])
     ->middleware('throttle:120,1')

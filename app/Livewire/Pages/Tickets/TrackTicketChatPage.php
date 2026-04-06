@@ -16,7 +16,7 @@ class TrackTicketChatPage extends Component
 
     public function mount(Ticket $ticket, string $token): void
     {
-        $this->ticket = $ticket;
+        $this->ticket = $ticket->loadMissing(['category', 'organization', 'evidences']);
         $this->token = $token;
     }
 

@@ -35,11 +35,24 @@
                 <div class="text-center py-10 animate-fade-in">
                     <flux:icon.check-circle variant="solid" class="mx-auto size-16 text-success" />
                     <flux:heading size="xl" class="mt-4">Laporan Terkirim!</flux:heading>
-                    <flux:subheading>Nomor Tiket Anda:</flux:subheading>
+                    <flux:subheading>Nomor tiket Anda</flux:subheading>
                     <div
                         class="mt-4 rounded-lg border border-border bg-muted p-4 font-mono text-lg font-bold select-all !text-foreground dark:border-zinc-600 dark:bg-zinc-700 dark:!text-zinc-50">
                         {{ $createdTicketNo }}
                     </div>
+                    <flux:subheading class="mt-6">Token akses (lacak tiket)</flux:subheading>
+                    <div
+                        class="mt-2 rounded-lg border border-border bg-muted p-4 font-mono text-sm font-semibold break-all select-all !text-foreground dark:border-zinc-600 dark:bg-zinc-700 dark:!text-zinc-50">
+                        {{ $createdReporterChatToken }}
+                    </div>
+                    <flux:text class="mx-auto mt-4 max-w-md text-center text-sm">
+                        Simpan nomor tiket dan token ini. Setelah email aktif, Anda juga akan menerima tautan lacak lewat
+                        surel. Untuk melacak sekarang, gunakan menu
+                        <a href="{{ route('tickets.track.search') }}"
+                            class="font-medium text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary">Cari
+                            Tiket</a>
+                        di beranda.
+                    </flux:text>
                     <div class="mt-8">
                         <flux:button wire:click="closeSuccess" variant="primary">Tutup & Selesai</flux:button>
                     </div>

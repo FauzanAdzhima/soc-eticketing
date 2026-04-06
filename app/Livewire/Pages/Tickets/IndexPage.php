@@ -533,7 +533,7 @@ class IndexPage extends Component
             return;
         }
 
-        $ticket = $ticketService->createTicket([
+        $result = $ticketService->createTicket([
             'title' => $this->formTitle,
             'reporter_name' => $this->formReporterName,
             'reporter_email' => $this->formReporterEmail,
@@ -548,7 +548,7 @@ class IndexPage extends Component
             'created_by' => auth()->id(),
         ]);
 
-        session()->flash('toast_success', 'Tiket berhasil dibuat: '.$ticket->ticket_number);
+        session()->flash('toast_success', 'Tiket berhasil dibuat: '.$result->ticket->ticket_number);
         $this->modal('ticket-create-pic-modal')->close();
         $this->resetCreateFormFields();
         $this->resetPage();

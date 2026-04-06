@@ -18,7 +18,7 @@ class TicketService
         //
     }
 
-    public function createTicket(array $data): Ticket
+    public function createTicket(array $data): TicketCreationResult
     {
         $reporterChatTokenPlain = '';
 
@@ -66,7 +66,7 @@ class TicketService
 
         TicketCreated::dispatch($ticket, $reporterChatTokenPlain);
 
-        return $ticket;
+        return new TicketCreationResult($ticket, $reporterChatTokenPlain);
     }
 
     protected function storeTicketEvidence(Ticket $ticket, array $evidenceFiles): void

@@ -8,7 +8,7 @@
 
 <flux:separator class="my-8" />
 
-<div class="mt-6 rounded-xl bg-primary/10 p-6 dark:bg-muted/80">
+<div class="mt-6 rounded-xl bg-[#eaeff8] p-6 dark:bg-zinc-800/60">
     <div class="flex flex-col gap-6 md:flex-row md:items-center">
         <div class="flex justify-center md:w-1/5 md:justify-start">
             <img src="https://www.svgrepo.com/show/474372/code.svg" class="h-28 w-auto" alt="" aria-hidden="true">

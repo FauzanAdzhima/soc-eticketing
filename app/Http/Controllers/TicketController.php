@@ -69,11 +69,12 @@ class TicketController extends Controller
         $payload['created_by'] = $createdBy;
         $payload['evidence_files'] = $request->file('evidence_files', []);
 
-        $ticket = $ticketService->createTicket($payload);
+        $result = $ticketService->createTicket($payload);
 
         return response()->json([
             'message' => 'Ticket created successfully',
-            'data' => $ticket,
+            'data' => $result->ticket,
+            'reporter_chat_token' => $result->reporterChatTokenPlain,
         ], 201);
     }
 

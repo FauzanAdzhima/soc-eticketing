@@ -16,6 +16,8 @@ class TicketCreateForm extends Component
     public bool $isOfficialEmployee = false;
     public bool $isSuccess = false;
     public string $createdTicketNo = '';
+
+    public string $createdReporterChatToken = '';
     public $categories = [];
     public $organizations = [];
     public $evidenceFiles = [];
@@ -48,6 +50,7 @@ class TicketCreateForm extends Component
     {
         $this->selectedCategoryId = $categoryId;
         $this->isSuccess = false;
+        $this->createdReporterChatToken = '';
         $this->modal('incident-modal')->show();
     }
 
@@ -67,19 +70,20 @@ class TicketCreateForm extends Component
             return;
         }
 
-        $ticket = $ticketService->createTicket(array_merge($this->formData, [
+        $result = $ticketService->createTicket(array_merge($this->formData, [
             'incident_category_id' => $this->selectedCategoryId,
             'evidence_files' => $this->evidenceFiles,
         ]));
 
         $this->isSuccess = true;
-        $this->createdTicketNo = $ticket->ticket_number;
+        $this->createdTicketNo = $result->ticket->ticket_number;
+        $this->createdReporterChatToken = $result->reporterChatTokenPlain;
     }
 
     public function closeSuccess(): void
     {
         $this->modal('incident-modal')->close();
-        $this->reset(['isSuccess', 'evidenceFiles', 'createdTicketNo', 'selectedCategoryId']);
+        $this->reset(['isSuccess', 'evidenceFiles', 'createdTicketNo', 'createdReporterChatToken', 'selectedCategoryId']);
         $this->formData = $this->defaultFormData();
         $this->generateCaptcha();
     }

@@ -42,7 +42,8 @@
                             <flux:heading size="lg">Cari Tiket</flux:heading>
 
                             <div>
-                                <flux:button variant="primary" color="blue" class="mt-8 py-3" icon:trailing="arrow-right">
+                                <flux:button variant="primary" color="blue" class="mt-8 py-3"
+                                    href="{{ route('tickets.track.search') }}" icon:trailing="arrow-right">
                                     Cari Tiket Anda
                                 </flux:button>
                             </div>

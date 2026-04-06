@@ -19,7 +19,7 @@ class TicketServiceTest extends TestCase
         $category = \App\Models\IncidentCategory::create(['name' => 'Web Defacement']);
         $service = new \App\Services\TicketService();
 
-        $ticket = $service->createTicket([
+        $result = $service->createTicket([
             'title' => 'Test',
             'reporter_name' => 'Fauzan',
             'reporter_email' => 'fauzan@kepri.go.id',
@@ -28,6 +28,7 @@ class TicketServiceTest extends TestCase
             'incident_description' => 'Test Desc',
             'incident_time' => now(),
         ]);
+        $ticket = $result->ticket;
 
         $this->assertNotNull($ticket->ticket_number);
         $this->assertStringStartsWith('TIC-', $ticket->ticket_number);
@@ -49,7 +50,7 @@ class TicketServiceTest extends TestCase
         ]);
         $service = new \App\Services\TicketService();
 
-        $ticket = $service->createTicket([
+        $result = $service->createTicket([
             'title' => 'Insiden malware',
             'reporter_name' => 'Pelapor',
             'reporter_email' => 'pelapor@example.com',
@@ -63,6 +64,7 @@ class TicketServiceTest extends TestCase
                 UploadedFile::fake()->create('log.txt', 10, 'text/plain'),
             ],
         ]);
+        $ticket = $result->ticket;
 
         $this->assertCount(2, $ticket->evidences);
         Storage::disk('public')->assertExists($ticket->evidences[0]->path);
@@ -80,7 +82,7 @@ class TicketServiceTest extends TestCase
         $service = new TicketService;
         $reporterEmail = 'pelapor@example.com';
 
-        $ticket = $service->createTicket([
+        $result = $service->createTicket([
             'title' => 'Email mencurigakan',
             'reporter_name' => 'Budi',
             'reporter_email' => $reporterEmail,
@@ -89,6 +91,7 @@ class TicketServiceTest extends TestCase
             'incident_description' => 'Isi laporan.',
             'incident_time' => now(),
         ]);
+        $ticket = $result->ticket;
 
         $persisted = $ticket->fresh();
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', (string) $persisted->reporter_chat_token_hash);

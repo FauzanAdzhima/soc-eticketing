@@ -7,6 +7,6 @@
             <flux:text>Masih bingung cara Kirim Aduan Portal di Kepriprov-CSIRT? Unduh panduan ticketing di
                 Kepriprov-CSIRT sekarang juga!</flux:text>
         </div>
-        <flux:button class="flex-1">Unduh Panduan</flux:button>
+        <flux:button variant="primary" color="blue" class="flex-1">Unduh Panduan</flux:button>
     </flux:card>
 </section>
