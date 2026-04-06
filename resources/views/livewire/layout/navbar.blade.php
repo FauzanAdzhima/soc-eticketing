@@ -24,7 +24,7 @@
             </button>
 
             <div>
-                <p class="text-sm text-primary-foreground">SOC eTicketing</p>
+                <p class="text-sm text-primary-foreground">Kepriprov-CSIRT eTicketing</p>
                 <h1 class="text-base font-semibold text-primary-foreground">{{ $this->userName }}</h1>
             </div>
         </div>

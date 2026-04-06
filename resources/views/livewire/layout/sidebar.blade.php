@@ -24,7 +24,7 @@
 <aside class="flex h-full w-full flex-col border-r border-border bg-surface">
     <div class="p-4">
         <h2 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground" x-show="!sidebarCollapsed"
-            x-cloak>Navigation</h2>
+            x-cloak>Menu</h2>
         <h2 class="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground"
             x-show="sidebarCollapsed" x-cloak>Nav</h2>
     </div>
