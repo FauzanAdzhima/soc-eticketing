@@ -83,6 +83,9 @@ class IncidentResponseService
                     'sub_status' => Ticket::SUB_STATUS_RESOLUTION,
                 ]),
             ]);
+
+            $ticket->refresh();
+            $ticket->close($user);
         });
     }
 }

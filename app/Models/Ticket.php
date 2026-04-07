@@ -451,7 +451,7 @@ class Ticket extends Model
     }
 
     /**
-     * Koordinator menutup tiket yang telah selesai ditangani.
+     * Menutup tiket setelah penanganan respons selesai (resolver ter-assign atau koordinator).
      */
     public function close(User $user, bool $isSystem = false): void
     {
@@ -464,9 +464,7 @@ class Ticket extends Model
         }
 
         if (! $isSystem) {
-            if (! $user->can('ticket.close')) {
-                throw new Exception('Anda tidak memiliki izin untuk menutup tiket.');
-            }
+            Gate::forUser($user)->authorize('close', $this);
         }
 
         // Backward compatibility:

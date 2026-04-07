@@ -91,6 +91,7 @@ class RoleSeeder extends Seeder
                     'ticket.view',
                     'ticket.respond',
                     'ticket.update_status',
+                    'ticket.incident_report.manage',
                     'ticket.chat.view',
                     'ticket.chat.send_external',
                     'ticket.chat.send_internal',

@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\IncidentAnalysis;
 use App\Models\IncidentCategory;
+use App\Models\IncidentResponseAction;
 use App\Models\Organization;
 use App\Models\Ticket;
 use App\Models\TicketAssignment;
@@ -229,6 +231,22 @@ class TicketAuthorizationTest extends TestCase
             'report_is_valid' => true,
         ]);
 
+        $actor = User::factory()->create();
+        IncidentAnalysis::query()->create([
+            'ticket_id' => $ticket->id,
+            'performed_by' => $actor->id,
+            'severity' => 'Low',
+            'impact' => 'i',
+            'root_cause' => 'r',
+            'recommendation' => 'c',
+        ]);
+        IncidentResponseAction::query()->create([
+            'ticket_id' => $ticket->id,
+            'performed_by' => $actor->id,
+            'action_type' => IncidentResponseAction::TYPE_MITIGATION,
+            'description' => 'Tindakan respons tercatat',
+        ]);
+
         $koordinator = User::factory()->create();
         $koordinator->assignRole('koordinator');
         Sanctum::actingAs($koordinator);
@@ -237,6 +255,80 @@ class TicketAuthorizationTest extends TestCase
             ->assertOk();
 
         $this->assertTrue($ticket->fresh()->isClosed());
+    }
+
+    public function test_responder_can_close_ticket_via_api_when_assigned_in_resolution(): void
+    {
+        $ticket = $this->makeTicket([
+            'status' => Ticket::STATUS_ON_PROGRESS,
+            'sub_status' => Ticket::SUB_STATUS_RESOLUTION,
+            'report_status' => Ticket::REPORT_STATUS_VERIFIED,
+            'report_is_valid' => true,
+        ]);
+
+        $responder = User::factory()->create();
+        $responder->assignRole('responder');
+        TicketAssignment::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $responder->id,
+            'is_active' => true,
+            'kind' => TicketAssignment::KIND_ASSIGNED_PRIMARY,
+        ]);
+
+        IncidentAnalysis::query()->create([
+            'ticket_id' => $ticket->id,
+            'performed_by' => $responder->id,
+            'severity' => 'Low',
+            'impact' => 'i',
+            'root_cause' => 'r',
+            'recommendation' => 'c',
+        ]);
+        IncidentResponseAction::query()->create([
+            'ticket_id' => $ticket->id,
+            'performed_by' => $responder->id,
+            'action_type' => IncidentResponseAction::TYPE_MITIGATION,
+            'description' => 'Tindakan respons tercatat',
+        ]);
+
+        Sanctum::actingAs($responder);
+
+        $this->patchJson("/api/tickets/{$ticket->id}/status", ['status' => Ticket::STATUS_CLOSED])
+            ->assertOk();
+
+        $this->assertTrue($ticket->fresh()->isClosed());
+    }
+
+    public function test_responder_cannot_close_ticket_via_api_without_assignment(): void
+    {
+        $ticket = $this->makeTicket([
+            'status' => Ticket::STATUS_ON_PROGRESS,
+            'sub_status' => Ticket::SUB_STATUS_RESOLUTION,
+            'report_status' => Ticket::REPORT_STATUS_VERIFIED,
+            'report_is_valid' => true,
+        ]);
+
+        $other = User::factory()->create();
+        IncidentAnalysis::query()->create([
+            'ticket_id' => $ticket->id,
+            'performed_by' => $other->id,
+            'severity' => 'Low',
+            'impact' => 'i',
+            'root_cause' => 'r',
+            'recommendation' => 'c',
+        ]);
+        IncidentResponseAction::query()->create([
+            'ticket_id' => $ticket->id,
+            'performed_by' => $other->id,
+            'action_type' => IncidentResponseAction::TYPE_MITIGATION,
+            'description' => 'Tindakan respons tercatat',
+        ]);
+
+        $responder = User::factory()->create();
+        $responder->assignRole('responder');
+        Sanctum::actingAs($responder);
+
+        $this->patchJson("/api/tickets/{$ticket->id}/status", ['status' => Ticket::STATUS_CLOSED])
+            ->assertForbidden();
     }
 
     public function test_pic_can_reject_report_via_api(): void

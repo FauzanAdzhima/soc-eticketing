@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Livewire\Pages\Tickets\TicketCoordinatorReportEditorPage;
+use App\Models\IncidentAnalysis;
 use App\Models\IncidentCategory;
 use App\Models\IncidentResponseAction;
 use App\Models\Organization;
 use App\Models\Ticket;
+use App\Models\TicketAssignment;
 use App\Models\TicketReport;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
@@ -127,6 +129,55 @@ class TicketCoordinatorReportEditorPageTest extends TestCase
         $pic->assignRole('pic');
 
         $this->actingAs($pic)->get($url)->assertForbidden();
+    }
+
+    public function test_responder_assigned_to_ticket_can_open_incident_report_editor(): void
+    {
+        $responder = User::factory()->create();
+        $responder->assignRole('responder');
+
+        $ticket = $this->makeClosedVerifiedTicket();
+
+        IncidentAnalysis::query()->create([
+            'ticket_id' => $ticket->id,
+            'performed_by' => $responder->id,
+            'severity' => 'Low',
+            'impact' => 'i',
+            'root_cause' => 'r',
+            'recommendation' => 'c',
+        ]);
+
+        TicketAssignment::query()->create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $responder->id,
+            'is_active' => true,
+            'kind' => TicketAssignment::KIND_ASSIGNED_PRIMARY,
+        ]);
+
+        $this->actingAs($responder)
+            ->get(route('tickets.reports.edit', $ticket))
+            ->assertOk();
+    }
+
+    public function test_responder_not_assigned_cannot_open_incident_report_editor(): void
+    {
+        $responder = User::factory()->create();
+        $responder->assignRole('responder');
+
+        $ticket = $this->makeClosedVerifiedTicket();
+
+        IncidentAnalysis::query()->create([
+            'ticket_id' => $ticket->id,
+            'performed_by' => $responder->id,
+            'severity' => 'Low',
+            'impact' => 'i',
+            'root_cause' => 'r',
+            'recommendation' => 'c',
+        ]);
+
+        $this->actingAs($responder)
+            ->get(route('tickets.reports.edit', $ticket))
+            ->assertForbidden();
     }
 
     private function makeClosedVerifiedTicket(): Ticket

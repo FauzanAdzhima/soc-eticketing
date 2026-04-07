@@ -4,8 +4,11 @@ import './ticket-report-editor';
 
 window.Chart = Chart;
 
-// import Alpine from 'alpinejs';
-
-// window.Alpine = Alpine;
-
-// Alpine.start();
+document.addEventListener('livewire:navigated', () => {
+    try {
+        const stored = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+        const useDark = stored === 'dark' || ((stored === null || stored === 'system') && prefersDark);
+        document.documentElement.classList.toggle('dark', !!useDark);
+    } catch (e) {}
+});

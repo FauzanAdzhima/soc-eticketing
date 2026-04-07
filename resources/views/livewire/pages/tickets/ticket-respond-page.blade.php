@@ -132,7 +132,7 @@
             @if ($canStartResponse)
                 <p class="mt-1 text-foreground-secondary">Tiket masih berada di fase Analysis. Gunakan tombol <strong class="font-semibold">Tangani Tiket</strong> di bawah untuk memindahkan ke fase Response; setelah itu form pencatatan tindakan akan aktif.</p>
             @elseif ($ticket->sub_status === \App\Models\Ticket::SUB_STATUS_RESOLUTION)
-                <p class="mt-1 text-foreground-secondary">Fase penanganan ditandai selesai (Resolution). Form pencatatan tindakan dinonaktifkan. Jika perlu menambah catatan, minta <strong class="font-semibold">koordinator</strong> membuka kembali fase respons dari rincian tiket di daftar tiket.</p>
+                <p class="mt-1 text-foreground-secondary">Tiket dalam fase Resolution (belum ditutup). Form pencatatan tindakan dinonaktifkan. Hubungi <strong class="font-semibold">koordinator</strong> jika perlu penanganan lanjutan.</p>
             @else
                 <p class="mt-1 text-foreground-secondary">Anda tidak memiliki penugasan aktif pada tiket ini atau sub-status belum mengizinkan pencatatan tindakan. Hubungi koordinator untuk penugasan.</p>
             @endif
@@ -337,14 +337,14 @@
     @if ($canMarkResolved)
         <flux:card class="border-success/40 p-4 sm:p-5 dark:border-success/30">
             <flux:heading size="lg">Selesaikan Fase Respons</flux:heading>
-            <flux:text class="mt-1 text-sm text-foreground-secondary">Sub-status tiket diubah menjadi Resolution setelah tindakan mencukupi. Penutupan tiket tetap oleh koordinator.</flux:text>
+            <flux:text class="mt-1 text-sm text-foreground-secondary">Setelah dikonfirmasi, tindakan respons dianggap selesai dan <strong class="font-semibold">tiket ditutup</strong>. Pastikan dokumentasi tindakan sudah lengkap.</flux:text>
             <div class="mt-4 flex justify-end">
                 <flux:button
                     type="button"
                     variant="primary"
                     @click="openConfirm({
-                        title: 'Tandai Selesai?',
-                        message: 'Tandai penanganan respons selesai dan ubah sub-status ke Resolution?',
+                        title: 'Tutup Tiket?',
+                        message: 'Tandai penanganan selesai dan tutup tiket? Tindakan ini tidak dapat dibatalkan tanpa arahan koordinator.',
                         variant: 'primary',
                         action: async () => { await $wire.markResolved(); }
                     })"

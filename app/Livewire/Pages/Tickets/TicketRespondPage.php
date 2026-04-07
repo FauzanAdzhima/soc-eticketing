@@ -76,22 +76,30 @@ class TicketRespondPage extends Component
         session()->flash('toast_success', 'Fase penanganan beralih ke Response. Anda dapat mencatat tindakan.');
     }
 
-    public function markResolved(IncidentResponseService $service): void
+    public function markResolved(IncidentResponseService $service)
     {
         $ticket = Ticket::query()->where('public_id', $this->ticketPublicId)->firstOrFail();
+        $user = Auth::user();
+        assert($user instanceof User);
 
         try {
-            $service->markResponseResolved($ticket, Auth::user());
+            $service->markResponseResolved($ticket, $user);
         } catch (\Throwable $e) {
             session()->flash('toast_error', $e->getMessage());
 
-            return;
+            return null;
         }
 
-        // Broadcast ke seluruh koordinator setelah responder menandai selesai.
-        event(new TicketResolvedByResponder($ticket));
+        // Broadcast ke seluruh koordinator setelah responder menutup tiket.
+        event(new TicketResolvedByResponder($ticket->fresh()));
 
-        session()->flash('toast_success', 'Penanganan ditandai selesai (Resolution).');
+        session()->flash('toast_success', 'Penanganan selesai dan tiket ditutup.');
+
+        return $this->redirectRoute(
+            'tickets.index',
+            $user->seesOnlyResponderTicketListInNavigation() ? ['scope' => 'responder'] : [],
+            navigate: true
+        );
     }
 
     public function render(): View

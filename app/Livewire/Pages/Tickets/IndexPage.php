@@ -6,6 +6,7 @@ use App\Models\IncidentCategory;
 use App\Models\Organization;
 use App\Models\Ticket;
 use App\Models\TicketAssignment;
+use App\Models\TicketLog;
 use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Contracts\View\View;
@@ -459,7 +460,7 @@ class IndexPage extends Component
     }
 
     /**
-     * Koordinator: menutup tiket.
+     * Penutupan manual oleh koordinator (alur utama: responder menutup saat menandai selesai penanganan).
      */
     public function closeTicketByCoordinator(): void
     {
@@ -697,6 +698,177 @@ class IndexPage extends Component
         ];
     }
 
+    /**
+     * @return \Illuminate\Support\Collection<int, array{label: string, description: string, at: \Illuminate\Support\Carbon|null, color: string, elapsed_text: string|null}>
+     */
+    private function buildTicketTimeline(Ticket $ticket): \Illuminate\Support\Collection
+    {
+        $logs = TicketLog::query()
+            ->where('ticket_id', $ticket->id)
+            ->whereIn('action', [
+                'report_verified',
+                'report_rejected',
+                'assigned',
+                'contributor_assigned',
+                'sub_status_updated',
+                'response_marked_resolved',
+                'handling_validated',
+                'closed',
+                'ticket_reopened',
+            ])
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        $userIds = collect([$ticket->created_by]);
+        foreach ($logs as $log) {
+            if ($log->user_id) {
+                $userIds->push($log->user_id);
+            }
+            $data = json_decode((string) $log->data, true) ?: [];
+            if (isset($data['assigned_to'])) {
+                $userIds->push($data['assigned_to']);
+            }
+        }
+        $userNames = User::whereIn('id', $userIds->filter()->unique()->values())
+            ->pluck('name', 'id');
+
+        $entries = collect();
+
+        $entries->push([
+            'label' => 'Tiket Masuk',
+            'description' => 'Tiket dibuat oleh '.($userNames[$ticket->created_by] ?? 'Sistem'),
+            'at' => $ticket->created_at,
+            'color' => 'sky',
+        ]);
+
+        foreach ($logs as $log) {
+            $data = json_decode((string) $log->data, true) ?: [];
+            $actorName = $log->user_id ? ($userNames[$log->user_id] ?? '—') : 'Sistem';
+
+            $entry = match ($log->action) {
+                'report_verified' => [
+                    'label' => 'PIC Verifikasi Laporan',
+                    'description' => $actorName.' memverifikasi laporan sebagai valid',
+                    'color' => 'emerald',
+                ],
+                'report_rejected' => [
+                    'label' => 'PIC Menolak Laporan',
+                    'description' => $actorName.' menolak laporan',
+                    'color' => 'red',
+                ],
+                'assigned' => [
+                    'label' => 'Penugasan Petugas',
+                    'description' => $actorName.' menugaskan tiket ke '.($userNames[$data['assigned_to'] ?? 0] ?? '—'),
+                    'color' => 'violet',
+                ],
+                'contributor_assigned' => [
+                    'label' => 'Kontributor Ditambahkan',
+                    'description' => $actorName.' menambahkan kontributor '.($userNames[$data['assigned_to'] ?? 0] ?? '—'),
+                    'color' => 'violet',
+                ],
+                'sub_status_updated' => $this->mapSubStatusTimelineEntry($data, $actorName),
+                'response_marked_resolved' => [
+                    'label' => 'Penanganan Respons Selesai',
+                    'description' => $actorName.' menandai penanganan respons selesai',
+                    'color' => 'green',
+                ],
+                'handling_validated' => [
+                    'label' => 'Penanganan Divalidasi',
+                    'description' => $actorName.' memvalidasi penanganan insiden',
+                    'color' => 'purple',
+                ],
+                'closed' => [
+                    'label' => 'Tiket Ditutup',
+                    'description' => 'Tiket ditutup oleh '.$actorName,
+                    'color' => 'green',
+                ],
+                'ticket_reopened' => [
+                    'label' => 'Tiket Dibuka Kembali',
+                    'description' => $actorName.' membuka kembali tiket',
+                    'color' => 'red',
+                ],
+                default => null,
+            };
+
+            if ($entry !== null) {
+                $entry['at'] = $log->created_at;
+                $entries->push($entry);
+            }
+        }
+
+        $sorted = $entries->sortBy('at')->values();
+
+        return $sorted->map(function (array $entry, int $index) use ($sorted): array {
+            $entry['elapsed_text'] = null;
+            if ($index > 0) {
+                $prev = $sorted[$index - 1]['at'];
+                $current = $entry['at'];
+                if ($prev !== null && $current !== null) {
+                    $totalMinutes = (int) $prev->diffInMinutes($current, true);
+                    $days = intdiv($totalMinutes, 1440);
+                    $hours = intdiv($totalMinutes % 1440, 60);
+                    $minutes = $totalMinutes % 60;
+                    $parts = [];
+                    if ($days > 0) {
+                        $parts[] = $days.' hari';
+                    }
+                    if ($hours > 0) {
+                        $parts[] = $hours.' jam';
+                    }
+                    if ($minutes > 0) {
+                        $parts[] = $minutes.' menit';
+                    }
+                    $entry['elapsed_text'] = $parts !== [] ? implode(' ', $parts) : '< 1 menit';
+                }
+            }
+
+            return $entry;
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{label: string, description: string, color: string}
+     */
+    private function mapSubStatusTimelineEntry(array $data, string $actorName): array
+    {
+        $to = (string) ($data['to'] ?? '');
+        $from = (string) ($data['from'] ?? '');
+
+        return match ($to) {
+            Ticket::SUB_STATUS_TRIAGE => [
+                'label' => 'Fase Triase',
+                'description' => 'Tiket memasuki fase triase',
+                'color' => 'sky',
+            ],
+            Ticket::SUB_STATUS_ANALYSIS => [
+                'label' => 'Analis Mulai Analisis',
+                'description' => $actorName.' memulai analisis tiket',
+                'color' => 'blue',
+            ],
+            Ticket::SUB_STATUS_RESPONSE => [
+                'label' => $from === Ticket::SUB_STATUS_RESOLUTION
+                    ? 'Fase Respons Dibuka Kembali'
+                    : 'Responder Mulai Penanganan',
+                'description' => $from === Ticket::SUB_STATUS_RESOLUTION
+                    ? $actorName.' membuka kembali fase respons untuk tindakan tambahan'
+                    : $actorName.' memulai penanganan respons',
+                'color' => 'amber',
+            ],
+            Ticket::SUB_STATUS_RESOLUTION => [
+                'label' => 'Fase Resolusi',
+                'description' => 'Tiket memasuki fase resolusi',
+                'color' => 'green',
+            ],
+            default => [
+                'label' => 'Perubahan Sub-Status',
+                'description' => ($from ?: '—').' → '.($to ?: '—'),
+                'color' => 'zinc',
+            ],
+        };
+    }
+
     private function syncAssignAnalystUserIdFromTicket(Ticket $ticket): void
     {
         $ticket->loadMissing(['assignments' => fn ($q) => $q->where('is_active', true)]);
@@ -796,6 +968,7 @@ class IndexPage extends Component
                 ->with([
                     'category',
                     'creator',
+                    'organization',
                     'evidences',
                     'assignments' => fn ($q) => $q->where('is_active', true)->with('user'),
                     'analyses' => fn ($q) => $q->latest('created_at')->with(['performer', 'iocs.iocType']),
@@ -804,11 +977,16 @@ class IndexPage extends Component
                 ->first();
         }
 
+        $ticketTimeline = $detailTicket !== null
+            ? $this->buildTicketTimeline($detailTicket)
+            : collect();
+
         return view('livewire.pages.tickets.index-page', [
             'tickets' => $tickets,
             'categories' => IncidentCategory::query()->orderBy('name')->get(),
             'organizations' => Organization::query()->orderBy('name')->get(),
             'detailTicket' => $detailTicket,
+            'ticketTimeline' => $ticketTimeline,
             'analysts' => User::role('analis')->orderBy('name')->get(),
             'responders' => User::permission('ticket.respond')->orderBy('name')->get(),
             'analystListMode' => $this->isAnalystListMode(),

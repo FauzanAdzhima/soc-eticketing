@@ -327,7 +327,7 @@ class TicketPolicy
     }
 
     /**
-     * Koordinator: mengelola laporan koordinator untuk tiket.
+     * Mengelola laporan penanganan insiden untuk tiket (koordinator / responder dengan izin).
      */
     public function manageIncidentReport(User $user, Ticket $ticket): bool
     {
@@ -335,7 +335,11 @@ class TicketPolicy
             return false;
         }
 
-        return $user->can('ticket.incident_report.manage');
+        if (! $user->can('ticket.incident_report.manage')) {
+            return false;
+        }
+
+        return $this->view($user, $ticket);
     }
 
     public function close(User $user, Ticket $ticket): bool
@@ -348,7 +352,34 @@ class TicketPolicy
             return false;
         }
 
-        return $user->can('ticket.close');
+        if ($ticket->status !== Ticket::STATUS_ON_PROGRESS) {
+            return false;
+        }
+
+        if ($ticket->sub_status !== Ticket::SUB_STATUS_RESOLUTION) {
+            return false;
+        }
+
+        if ($ticket->report_status !== Ticket::REPORT_STATUS_VERIFIED || ! $ticket->report_is_valid) {
+            return false;
+        }
+
+        if (! $ticket->analyses()->exists() || ! $ticket->responseActions()->exists()) {
+            return false;
+        }
+
+        if ($user->can('ticket.close')) {
+            return true;
+        }
+
+        if ($user->can('ticket.respond')) {
+            return $ticket->assignments()
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->exists();
+        }
+
+        return false;
     }
 
     public function verifyReport(User $user, Ticket $ticket): bool

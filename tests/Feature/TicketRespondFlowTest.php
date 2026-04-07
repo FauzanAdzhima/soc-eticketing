@@ -176,6 +176,7 @@ class TicketRespondFlowTest extends TestCase
 
         $ticket->refresh();
         $this->assertSame(Ticket::SUB_STATUS_RESOLUTION, $ticket->sub_status);
+        $this->assertTrue($ticket->isClosed());
 
         $this->assertTrue(
             TicketLog::query()
@@ -184,12 +185,8 @@ class TicketRespondFlowTest extends TestCase
                 ->exists()
         );
 
-        Livewire::actingAs($responder)
-            ->test(TicketRespondPage::class, ['ticket' => $ticket->fresh()])
-            ->set('actionType', IncidentResponseAction::TYPE_ERADICATION)
-            ->set('description', 'Upaya lanjutan setelah Resolution — seharusnya ditolak.')
-            ->call('saveAction')
-            ->assertForbidden();
+        $this->actingAs($responder);
+        $this->get(route('tickets.respond', $ticket))->assertForbidden();
     }
 
     public function test_koordinator_reopens_response_phase_and_responder_can_record_again(): void
@@ -202,7 +199,7 @@ class TicketRespondFlowTest extends TestCase
         $koordinator->assignRole('koordinator');
 
         $ticket = $this->makeOnProgressTicket($pic, $responder, [
-            'sub_status' => Ticket::SUB_STATUS_RESOLUTION,
+            'sub_status' => Ticket::SUB_STATUS_RESPONSE,
         ]);
         $this->addAnalysis($ticket, $pic);
         IncidentResponseAction::query()->create([
@@ -212,13 +209,26 @@ class TicketRespondFlowTest extends TestCase
             'description' => 'Tindakan sebelum selesai',
         ]);
 
-        $this->assertTrue(Gate::forUser($koordinator)->allows('reopenResponseRecording', $ticket->fresh()));
-        $this->assertFalse(Gate::forUser($responder)->allows('reopenResponseRecording', $ticket->fresh()));
+        Livewire::actingAs($responder)
+            ->test(TicketRespondPage::class, ['ticket' => $ticket->fresh()])
+            ->call('markResolved')
+            ->assertHasNoErrors();
+
+        $ticket->refresh();
+        $this->assertTrue($ticket->isClosed());
+
+        $this->assertFalse(Gate::forUser($koordinator)->allows('reopenResponseRecording', $ticket->fresh()));
+        $this->assertTrue(Gate::forUser($koordinator)->allows('reopenClosed', $ticket->fresh()));
+        $this->assertFalse(Gate::forUser($responder)->allows('reopenClosed', $ticket->fresh()));
 
         Livewire::actingAs($koordinator)
             ->test(IndexPage::class)
             ->call('openTicketDetail', $ticket->public_id)
-            ->call('reopenResponseRecording')
+            ->set(
+                'reopenReason',
+                'Memerlukan dokumentasi tindakan tambahan setelah peninjauan koordinator atas penutupan responder.'
+            )
+            ->call('reopenClosedByCoordinator')
             ->assertHasNoErrors();
 
         $ticket->refresh();

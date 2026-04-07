@@ -146,7 +146,9 @@ class IncidentResponseServiceTest extends TestCase
 
         $service->markResponseResolved($ticket->fresh(), $responder);
 
-        $this->assertSame(Ticket::SUB_STATUS_RESOLUTION, $ticket->fresh()->sub_status);
+        $ticket->refresh();
+        $this->assertSame(Ticket::SUB_STATUS_RESOLUTION, $ticket->sub_status);
+        $this->assertTrue($ticket->isClosed());
     }
 
     private function makeTicketReadyForResponse(User $pic, User $assignee, string $subStatus = Ticket::SUB_STATUS_RESPONSE): Ticket

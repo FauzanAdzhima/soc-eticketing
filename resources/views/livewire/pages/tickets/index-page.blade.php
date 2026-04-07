@@ -211,6 +211,7 @@
                         <tr wire:key="ticket-{{ $ticket->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                             <td class="whitespace-nowrap px-3 py-2">
                                 <span
+                                    title="Severity: {{ $ticket->incident_severity ?? '—' }}"
                                     class="inline-flex max-w-full items-center rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold {{ $ticket->incidentSeverityTicketNumberPillClasses() }}">
                                     {{ $ticket->ticket_number ?? '—' }}
                                 </span>
@@ -476,6 +477,8 @@
                     '',
                     trim(str_replace("\xC2\xA0", ' ', (string) ($detailTicket->incident_description ?? ''))),
                 );
+                $detailReporterOrg =
+                    $detailTicket->organization?->name ?? $detailTicket->reporter_organization_name;
             @endphp
             <div x-ref="ticketDetailScrollContainer" :class="showConfirm ? 'confirm-open' : ''" class="ticket-list-scrollbar relative max-h-[80vh] space-y-6 overflow-x-hidden overflow-y-auto overscroll-contain">
                 <header
@@ -626,6 +629,27 @@
                                 <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">
                                     {{ $detailTicket->creator?->name ?? '—' }}</dd>
                             </div>
+                            <div class="sm:col-span-2">
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Pelapor</dt>
+                                <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">
+                                    {{ $detailTicket->reporter_name ?? '—' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Email Pelapor</dt>
+                                <dd class="mt-0.5 break-all text-zinc-900 dark:text-zinc-100">
+                                    {{ $detailTicket->reporter_email ?? '—' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-zinc-500 dark:text-zinc-400">Kontak Pelapor</dt>
+                                <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">
+                                    {{ $detailTicket->reporter_phone ?? '—' }}</dd>
+                            </div>
+                            @if (filled($detailReporterOrg))
+                                <div class="sm:col-span-2">
+                                    <dt class="font-medium text-zinc-500 dark:text-zinc-400">Instansi / Organisasi Pelapor</dt>
+                                    <dd class="mt-0.5 text-zinc-900 dark:text-zinc-100">{{ $detailReporterOrg }}</dd>
+                                </div>
+                            @endif
                             <div class="min-w-0 sm:col-span-2">
                                 <dt class="font-medium text-zinc-500 dark:text-zinc-400">Deskripsi Insiden</dt>
                                 <dd
@@ -689,6 +713,72 @@
                                 </ul>
                             @endif
                         </div>
+                    </div>
+                </details>
+
+                <details
+                    class="group rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                    <summary
+                        class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-left outline-none transition hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 dark:hover:bg-zinc-800/60 [&::-webkit-details-marker]:hidden">
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">Linimasa Tiket</span>
+                        </span>
+                        <svg class="size-4 shrink-0 text-zinc-500 transition-transform duration-200 group-open:rotate-180 sm:size-5 dark:text-zinc-400"
+                            xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                            aria-hidden="true">
+                            <path fill-rule="evenodd"
+                                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </summary>
+                    <div class="border-t border-zinc-200 p-4 dark:border-zinc-700 sm:p-5">
+                        @if ($ticketTimeline->isEmpty())
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">Belum ada riwayat.</p>
+                        @else
+                            <ol class="relative border-s-2 border-zinc-200 dark:border-zinc-700">
+                                @foreach ($ticketTimeline as $tl)
+                                    @php
+                                        $dotClasses = match ($tl['color']) {
+                                            'sky' => 'bg-sky-500 dark:bg-sky-400',
+                                            'emerald' => 'bg-emerald-500 dark:bg-emerald-400',
+                                            'green' => 'bg-green-500 dark:bg-green-400',
+                                            'red' => 'bg-red-500 dark:bg-red-400',
+                                            'violet' => 'bg-violet-500 dark:bg-violet-400',
+                                            'purple' => 'bg-purple-500 dark:bg-purple-400',
+                                            'blue' => 'bg-blue-500 dark:bg-blue-400',
+                                            'amber' => 'bg-amber-500 dark:bg-amber-400',
+                                            default => 'bg-zinc-400 dark:bg-zinc-500',
+                                        };
+                                    @endphp
+                                    <li class="ms-6 {{ !$loop->last ? 'pb-6' : '' }}">
+                                        <span
+                                            class="absolute -start-[7px] mt-1 flex h-3 w-3 items-center justify-center rounded-full ring-[3px] ring-white dark:ring-zinc-900 {{ $dotClasses }}"></span>
+                                        <div class="min-w-0">
+                                            <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                                                <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                                    {{ $tl['label'] }}</h3>
+                                                @if (!empty($tl['elapsed_text']))
+                                                    <span
+                                                        class="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                                                        <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg"
+                                                            fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                                            stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                                        </svg>
+                                                        +{{ $tl['elapsed_text'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            <time
+                                                class="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">{{ $tl['at']?->format('d M Y H:i:s') ?? '—' }}</time>
+                                            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+                                                {{ $tl['description'] }}</p>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ol>
+                        @endif
                     </div>
                 </details>
 
@@ -1030,7 +1120,7 @@
                             $detailTicket->report_is_valid === true)
                         <flux:card class="space-y-4 border-dashed border-green-200 p-4 sm:p-5 dark:border-green-900/40">
                             <flux:heading size="lg">Tutup Tiket</flux:heading>
-                            <flux:subheading>Menutup tiket setelah penanganan divalidasi oleh koordinator.</flux:subheading>
+                            <flux:subheading>Secara normal tiket ditutup oleh responder setelah menandai selesai di halaman penanganan. Gunakan tombol ini jika penutupan manual dari koordinator diperlukan.</flux:subheading>
                             <div class="flex flex-wrap justify-end gap-2">
                                 <flux:button type="button" variant="danger"
                                     @click="openConfirm({
