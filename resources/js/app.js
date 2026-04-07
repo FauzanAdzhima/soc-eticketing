@@ -12,3 +12,13 @@ document.addEventListener('livewire:navigated', () => {
         document.documentElement.classList.toggle('dark', !!useDark);
     } catch (e) {}
 });
+
+document.addEventListener('livewire:init', () => {
+    Livewire.hook('request', ({ fail }) => {
+        fail(({ status }) => {
+            if ([0, 401, 404, 419, 500].includes(status)) {
+                window.location.reload();
+            }
+        });
+    });
+});

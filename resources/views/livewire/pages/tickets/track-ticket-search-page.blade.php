@@ -6,8 +6,10 @@
             <div>
                 <flux:heading size="xl">Cari Tiket Anda</flux:heading>
                 <flux:text class="mt-2">
-                    Masukkan nomor tiket (contoh: TIC-2604-ABCD) dan token akses yang dikirim ke email Anda saat laporan
-                    dibuat. Anda juga dapat memakai ID publik dari tautan lacak jika dimiliki.
+                    Masukkan nomor tiket (contoh: TIC-2604-ABCD) dan token akses 
+                    yang didapat
+                    {{-- yang dikirim ke email Anda  --}}
+                    saat laporan dibuat. Anda juga dapat memakai ID publik dari tautan lacak jika dimiliki.
                 </flux:text>
             </div>
 

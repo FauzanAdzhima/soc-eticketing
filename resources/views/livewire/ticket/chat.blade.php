@@ -241,7 +241,19 @@
         @endforelse
     </div>
 
-    @if ($this->canUseChat())
+    @if ($ticket->isTerminal())
+        <div class="border-t border-zinc-200 px-3 py-3 dark:border-zinc-700">
+            <div
+                class="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2.5 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
+                <span>{{ __('Tiket sudah ditutup. Pesan baru tidak dapat dikirim sampai tiket dibuka kembali.') }}</span>
+            </div>
+        </div>
+    @elseif ($this->canUseChat())
         <form wire:submit="sendMessage" class="space-y-3 border-t border-zinc-200 p-3 dark:border-zinc-700">
             @if (!$isGuest && $this->canSendExternal() && $this->canSendInternal())
                 <flux:radio.group wire:model.live="visibility" label="{{ __('Visibilitas') }}">

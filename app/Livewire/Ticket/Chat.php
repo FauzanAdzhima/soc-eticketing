@@ -121,6 +121,10 @@ class Chat extends Component
 
     public function canUseChat(): bool
     {
+        if ($this->ticket->isTerminal()) {
+            return false;
+        }
+
         return $this->isGuest || $this->canSendExternal() || $this->canSendInternal();
     }
 
@@ -131,6 +135,14 @@ class Chat extends Component
 
     public function sendMessage(): void
     {
+        $this->ticket->refresh();
+
+        if ($this->ticket->isTerminal()) {
+            $this->addError('body', 'Tiket sudah ditutup. Pesan tidak dapat dikirim.');
+
+            return;
+        }
+
         if (! $this->canUseChat()) {
             abort(403);
         }

@@ -108,6 +108,8 @@ class IndexPage extends Component
         }
     }
 
+    public function keepAlive(): void {}
+
     /**
      * Dipanggil dari wire:poll di mode analis: bandingkan jumlah penugasan aktif; jika naik, tampilkan banner.
      */
@@ -220,7 +222,14 @@ class IndexPage extends Component
         $ticket = Ticket::query()
             ->where('public_id', $publicId)
             ->with(['assignments' => fn ($q) => $q->where('is_active', true)])
-            ->firstOrFail();
+            ->first();
+
+        if ($ticket === null) {
+            session()->flash('toast_error', 'Tiket tidak ditemukan.');
+
+            return;
+        }
+
         $this->authorize('view', $ticket);
         $this->detailTicketPublicId = $publicId;
         $this->syncAssignAnalystUserIdFromTicket($ticket);
@@ -259,9 +268,10 @@ class IndexPage extends Component
 
     public function verifyTicketReport(): void
     {
-        $ticket = Ticket::query()
-            ->where('public_id', $this->detailTicketPublicId)
-            ->firstOrFail();
+        $ticket = $this->resolveDetailTicketOrFlash();
+        if ($ticket === null) {
+            return;
+        }
 
         $this->authorize('verifyReport', $ticket);
 
@@ -294,9 +304,10 @@ class IndexPage extends Component
 
     public function rejectTicketReport(): void
     {
-        $ticket = Ticket::query()
-            ->where('public_id', $this->detailTicketPublicId)
-            ->firstOrFail();
+        $ticket = $this->resolveDetailTicketOrFlash();
+        if ($ticket === null) {
+            return;
+        }
 
         $this->authorize('rejectReport', $ticket);
 
@@ -323,9 +334,10 @@ class IndexPage extends Component
 
     public function assignAnalyst(): void
     {
-        $ticket = Ticket::query()
-            ->where('public_id', $this->detailTicketPublicId)
-            ->firstOrFail();
+        $ticket = $this->resolveDetailTicketOrFlash();
+        if ($ticket === null) {
+            return;
+        }
 
         $this->authorize('assign', $ticket);
 
@@ -373,9 +385,10 @@ class IndexPage extends Component
      */
     public function assignHandoffResponder(): void
     {
-        $ticket = Ticket::query()
-            ->where('public_id', $this->detailTicketPublicId)
-            ->firstOrFail();
+        $ticket = $this->resolveDetailTicketOrFlash();
+        if ($ticket === null) {
+            return;
+        }
 
         $this->authorize('assignResponderHandoff', $ticket);
 
@@ -435,13 +448,49 @@ class IndexPage extends Component
     }
 
     /**
+     * PIC / Koordinator: batalkan penugasan utama terakhir (dalam batas waktu).
+     */
+    public function cancelAssignment(): void
+    {
+        $ticket = $this->resolveDetailTicketOrFlash();
+        if ($ticket === null) {
+            return;
+        }
+
+        $this->authorize('cancelAssignment', $ticket);
+
+        $user = auth()->user();
+        assert($user instanceof User);
+
+        try {
+            $ticket->cancelLatestAssignment($user);
+        } catch (\Throwable $e) {
+            session()->flash('toast_error', $e->getMessage());
+
+            return;
+        }
+
+        session()->flash('toast_success', 'Penugasan berhasil dibatalkan. Tiket siap ditugaskan kembali.');
+        $this->assignAnalystUserId = null;
+        $this->assignResponderUserId = null;
+        $this->reassignMode = '';
+        $this->resetValidation();
+        $fresh = $ticket->fresh();
+        if ($fresh !== null) {
+            $this->syncAssignAnalystUserIdFromTicket($fresh);
+            $this->syncAssignResponderUserIdFromTicket($fresh);
+        }
+    }
+
+    /**
      * Koordinator: buka kembali fase Response dari Resolution agar responder dapat menambah catatan tindakan.
      */
     public function reopenResponseRecording(): void
     {
-        $ticket = Ticket::query()
-            ->where('public_id', $this->detailTicketPublicId)
-            ->firstOrFail();
+        $ticket = $this->resolveDetailTicketOrFlash();
+        if ($ticket === null) {
+            return;
+        }
 
         $this->authorize('reopenResponseRecording', $ticket);
 
@@ -464,9 +513,10 @@ class IndexPage extends Component
      */
     public function closeTicketByCoordinator(): void
     {
-        $ticket = Ticket::query()
-            ->where('public_id', $this->detailTicketPublicId)
-            ->firstOrFail();
+        $ticket = $this->resolveDetailTicketOrFlash();
+        if ($ticket === null) {
+            return;
+        }
 
         $this->authorize('close', $ticket);
 
@@ -490,9 +540,10 @@ class IndexPage extends Component
      */
     public function reopenClosedByCoordinator(): void
     {
-        $ticket = Ticket::query()
-            ->where('public_id', $this->detailTicketPublicId)
-            ->firstOrFail();
+        $ticket = $this->resolveDetailTicketOrFlash();
+        if ($ticket === null) {
+            return;
+        }
 
         $this->authorize('reopenClosed', $ticket);
 
@@ -524,7 +575,11 @@ class IndexPage extends Component
     {
         abort_unless(auth()->user()?->can('ticket.create.pic'), 403);
 
-        $this->validate($this->createTicketRules());
+        $this->validate($this->createTicketRules(), [
+            'formReporterName.regex' => 'Nama hanya boleh berisi huruf, spasi, titik, dan tanda hubung.',
+            'formReporterPhone.regex' => 'Nomor telepon harus diawali 08, 62, atau +62.',
+            'formReporterPhone.max' => 'Nomor telepon maksimal 15 karakter.',
+        ]);
 
         $hasOrgId = filled($this->formReporterOrganizationId);
         $hasOrgName = filled($this->formReporterOrganizationName);
@@ -712,6 +767,7 @@ class IndexPage extends Component
                 'contributor_assigned',
                 'sub_status_updated',
                 'response_marked_resolved',
+                'assignment_cancelled',
                 'handling_validated',
                 'closed',
                 'ticket_reopened',
@@ -728,6 +784,12 @@ class IndexPage extends Component
             $data = json_decode((string) $log->data, true) ?: [];
             if (isset($data['assigned_to'])) {
                 $userIds->push($data['assigned_to']);
+            }
+            if (isset($data['cancelled_user_id'])) {
+                $userIds->push($data['cancelled_user_id']);
+            }
+            if (isset($data['restored_user_id'])) {
+                $userIds->push($data['restored_user_id']);
             }
         }
         $userNames = User::whereIn('id', $userIds->filter()->unique()->values())
@@ -766,6 +828,14 @@ class IndexPage extends Component
                     'label' => 'Kontributor Ditambahkan',
                     'description' => $actorName.' menambahkan kontributor '.($userNames[$data['assigned_to'] ?? 0] ?? '—'),
                     'color' => 'violet',
+                ],
+                'assignment_cancelled' => [
+                    'label' => 'Penugasan Dibatalkan',
+                    'description' => $actorName.' membatalkan penugasan '.($userNames[$data['cancelled_user_id'] ?? 0] ?? '—')
+                        .(! empty($data['restored_user_id']) ? ', penugasan '
+                            .($userNames[$data['restored_user_id']] ?? '—')
+                            .' dipulihkan' : ''),
+                    'color' => 'red',
                 ],
                 'sub_status_updated' => $this->mapSubStatusTimelineEntry($data, $actorName),
                 'response_marked_resolved' => [
@@ -939,13 +1009,36 @@ class IndexPage extends Component
     /**
      * @return array<string, mixed>
      */
+    private function resolveDetailTicket(): ?Ticket
+    {
+        if ($this->detailTicketPublicId === null || $this->detailTicketPublicId === '') {
+            return null;
+        }
+
+        return Ticket::query()
+            ->where('public_id', $this->detailTicketPublicId)
+            ->first();
+    }
+
+    private function resolveDetailTicketOrFlash(): ?Ticket
+    {
+        $ticket = $this->resolveDetailTicket();
+
+        if ($ticket === null) {
+            session()->flash('toast_error', 'Tiket tidak ditemukan. Silakan muat ulang halaman.');
+            $this->detailTicketPublicId = null;
+        }
+
+        return $ticket;
+    }
+
     private function createTicketRules(): array
     {
         return [
             'formTitle' => ['required', 'string', 'max:255'],
-            'formReporterName' => ['required', 'string', 'max:255'],
+            'formReporterName' => ['required', 'string', 'max:255', 'regex:/^[\pL\s\.\-\']+$/u'],
             'formReporterEmail' => ['required', 'email', 'max:255'],
-            'formReporterPhone' => ['nullable', 'string', 'max:30'],
+            'formReporterPhone' => ['nullable', 'string', 'max:15', 'regex:/^(\+62|62|08)\d+$/'],
             'formReporterOrganizationId' => ['nullable', 'exists:organizations,id'],
             'formReporterOrganizationName' => ['nullable', 'string', 'max:255'],
             'formIncidentCategoryId' => ['required', 'exists:incident_categories,id'],

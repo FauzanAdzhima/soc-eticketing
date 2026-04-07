@@ -13,7 +13,6 @@ new class extends Component {
     public bool $isOfficialEmployee = false;
     public bool $isSuccess = false;
     public string $createdTicketNo = '';
-    public string $createdReporterChatToken = '';
     public $categories = [];
     public $organizations = [];
 
@@ -43,7 +42,6 @@ new class extends Component {
     {
         $this->selectedCategoryId = $categoryId;
         $this->isSuccess = false;
-        $this->createdReporterChatToken = '';
         $this->modal('incident-modal')->show();
     }
 
@@ -64,7 +62,7 @@ new class extends Component {
             return;
         }
 
-        $result = $ticketService->createTicket(
+        $ticket = $ticketService->createTicket(
             array_merge($this->formData, [
                 'incident_category_id' => $this->selectedCategoryId,
                 'evidence_files' => $this->evidenceFiles,
@@ -72,8 +70,7 @@ new class extends Component {
         );
 
         $this->isSuccess = true;
-        $this->createdTicketNo = $result->ticket->ticket_number;
-        $this->createdReporterChatToken = $result->reporterChatTokenPlain;
+        $this->createdTicketNo = $ticket->ticket_number;
 
         $this->dispatch('refresh');
     }
@@ -82,7 +79,7 @@ new class extends Component {
     public function closeSuccess()
     {
         $this->modal('incident-modal')->close();
-        $this->reset(['isSuccess', 'evidenceFiles', 'createdTicketNo', 'createdReporterChatToken', 'selectedCategoryId']);
+        $this->reset(['isSuccess', 'evidenceFiles', 'createdTicketNo', 'selectedCategoryId']);
         $this->formData = $this->defaultFormData();
         $this->generateCaptcha();
     }
@@ -180,26 +177,15 @@ new class extends Component {
     <flux:modal name="incident-modal" class="md:w-[800px]">
         <div class="space-y-6">
             @if ($isSuccess)
-                <div class="text-center py-10 animate-fade-in text-zinc-900 dark:text-zinc-100">
-                    <flux:icon.check-circle variant="solid"
-                        class="size-16 mx-auto text-green-600 dark:text-green-400" />
-                    <flux:heading size="xl" class="mt-4 text-zinc-900 dark:text-zinc-50">Laporan Terkirim!</flux:heading>
-                    <flux:subheading class="text-zinc-600 dark:text-zinc-400">Nomor tiket Anda</flux:subheading>
+                <div class="text-center py-10 animate-fade-in">
+                    <flux:icon.check-circle variant="solid" class="size-16 text-green-500 mx-auto" />
+                    <flux:heading size="xl" class="mt-4">Laporan Terkirim!</flux:heading>
+                    <flux:subheading>Nomor Tiket Anda:</flux:subheading>
 
                     <div
-                        class="mt-4 rounded-lg border border-zinc-200 bg-zinc-100 p-4 font-mono text-lg font-bold select-all !text-zinc-900 dark:border-zinc-600 dark:bg-zinc-700 dark:!text-zinc-50">
+                        class="mt-4 p-4 bg-zinc-100 dark:bg-zinc-800 rounded-lg font-mono text-lg font-bold select-all">
                         {{ $createdTicketNo }}
                     </div>
-
-                    <flux:subheading class="mt-6 text-zinc-600 dark:text-zinc-400">Token akses (lacak tiket)</flux:subheading>
-                    <div
-                        class="mt-2 rounded-lg border border-zinc-200 bg-zinc-100 p-4 font-mono text-sm font-semibold break-all select-all !text-zinc-900 dark:border-zinc-600 dark:bg-zinc-700 dark:!text-zinc-50">
-                        {{ $createdReporterChatToken }}
-                    </div>
-                    <p class="mx-auto mt-4 max-w-md text-center text-sm text-zinc-600 dark:text-zinc-400">
-                        Simpan nomor tiket dan token ini. Setelah email aktif, Anda juga akan menerima tautan lacak lewat
-                        surel.
-                    </p>
 
                     <div class="mt-8">
                         <flux:button wire:click="closeSuccess" variant="primary">Tutup & Selesai</flux:button>

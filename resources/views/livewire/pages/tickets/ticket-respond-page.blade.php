@@ -39,7 +39,7 @@
     <div
         x-show="showConfirm"
         x-cloak
-        class="fixed inset-0 z-50 flex items-center justify-center bg-scrim/40 backdrop-blur-sm dark:bg-scrim/60"
+        class="fixed inset-0 z-50 h-screen flex items-center justify-center bg-scrim/40 backdrop-blur-sm dark:bg-scrim/60"
         @keydown.escape.window="!confirmBusy && closeConfirm()"
     >
         <div class="m-4 w-[min(100vw-2rem,32rem)] max-w-lg rounded-xl border border-border bg-surface p-5 shadow-2xl">

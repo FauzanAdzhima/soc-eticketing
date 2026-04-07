@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Ticket;
 use App\Models\TicketEvidence;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -14,6 +15,30 @@ class TicketEvidenceController extends Controller
     {
         $this->authorize('view', $evidence->ticket);
 
+        return $this->streamEvidence($evidence);
+    }
+
+    public function showGuest(Ticket $ticket, string $token, TicketEvidence $evidence): BinaryFileResponse
+    {
+        abort_unless($this->reporterTokenMatches($ticket, $token), 403);
+        abort_unless((int) $evidence->ticket_id === (int) $ticket->id, 404);
+
+        return $this->streamEvidence($evidence);
+    }
+
+    private function reporterTokenMatches(Ticket $ticket, string $plainToken): bool
+    {
+        $stored = $ticket->reporter_chat_token_hash;
+
+        if (! is_string($stored) || $stored === '') {
+            return false;
+        }
+
+        return hash_equals($stored, hash('sha256', $plainToken));
+    }
+
+    private function streamEvidence(TicketEvidence $evidence): BinaryFileResponse
+    {
         $disk = Storage::disk($evidence->disk);
 
         if (! $disk->exists($evidence->path)) {

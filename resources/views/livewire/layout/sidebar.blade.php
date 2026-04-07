@@ -29,7 +29,7 @@
             x-show="sidebarCollapsed" x-cloak>Nav</h2>
     </div>
 
-    <nav class="flex-1 space-y-1 overflow-y-auto px-2 pb-4">
+    <nav class="flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 pb-4">
         @forelse ($menus as $index => $menu)
             @if ($index > 0 && ($menu['group'] ?? 'core') !== ($menus[$index - 1]['group'] ?? 'core'))
                 <div role="separator" aria-hidden="true"
@@ -37,7 +37,9 @@
             @endif
             @if (blank($menu['permission']))
                 <a href="{{ route($menu['route'], $menu['route_query'] ?? []) }}"
-                    x-data="{ hover: false }" @mouseenter="hover = true" @mouseleave="hover = false"
+                    x-data="{ hover: false, tt: '' }"
+                    @mouseenter="hover = true; if(sidebarCollapsed){ const r=$el.getBoundingClientRect(); tt=`position:fixed;left:${r.right+8}px;top:${r.top+r.height/2}px;transform:translateY(-50%)` }"
+                    @mouseleave="hover = false"
                     @class([
                         'relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition',
                         'bg-primary text-primary-foreground' => $this->isActiveForMenu($menu),
@@ -49,15 +51,17 @@
                         'text-muted-foreground' => !$this->isActiveForMenu($menu),
                     ])>{!! $iconSvgs[$menu['icon']] ?? strtoupper(substr($menu['label'], 0, 1)) !!}</span>
                     <span class="truncate" x-show="!sidebarCollapsed" x-cloak>{{ $menu['label'] }}</span>
-                    <span x-cloak x-show="sidebarCollapsed && hover" x-transition
-                        class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs font-medium text-foreground shadow-md lg:block">
+                    <span x-cloak x-show="sidebarCollapsed && hover" x-transition :style="tt"
+                        class="pointer-events-none z-[9999] hidden whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs font-medium text-foreground shadow-md lg:block">
                         {{ $menu['label'] }}
                     </span>
                 </a>
             @else
                 @can($menu['permission'])
                     <a href="{{ route($menu['route'], $menu['route_query'] ?? []) }}"
-                        x-data="{ hover: false }" @mouseenter="hover = true" @mouseleave="hover = false"
+                        x-data="{ hover: false, tt: '' }"
+                        @mouseenter="hover = true; if(sidebarCollapsed){ const r=$el.getBoundingClientRect(); tt=`position:fixed;left:${r.right+8}px;top:${r.top+r.height/2}px;transform:translateY(-50%)` }"
+                        @mouseleave="hover = false"
                         @class([
                             'relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition',
                             'bg-primary text-primary-foreground' => $this->isActiveForMenu($menu),
@@ -69,8 +73,8 @@
                             'text-muted-foreground' => !$this->isActiveForMenu($menu),
                         ])>{!! $iconSvgs[$menu['icon']] ?? strtoupper(substr($menu['label'], 0, 1)) !!}</span>
                         <span class="truncate" x-show="!sidebarCollapsed" x-cloak>{{ $menu['label'] }}</span>
-                        <span x-cloak x-show="sidebarCollapsed && hover" x-transition
-                            class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs font-medium text-foreground shadow-md lg:block">
+                        <span x-cloak x-show="sidebarCollapsed && hover" x-transition :style="tt"
+                            class="pointer-events-none z-[9999] hidden whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs font-medium text-foreground shadow-md lg:block">
                             {{ $menu['label'] }}
                         </span>
                     </a>
@@ -82,15 +86,17 @@
     </nav>
 
     <div class="border-t border-border p-2">
-        <div x-data="{ hover: false }" @mouseenter="hover = true" @mouseleave="hover = false" class="relative">
+        <div x-data="{ hover: false, tt: '' }"
+            @mouseenter="hover = true; if(sidebarCollapsed){ const r=$el.getBoundingClientRect(); tt=`position:fixed;left:${r.right+8}px;top:${r.top+r.height/2}px;transform:translateY(-50%)` }"
+            @mouseleave="hover = false" class="relative">
             <div x-show="!sidebarCollapsed" x-cloak>
                 <x-theme-toggle class="w-full justify-center" />
             </div>
             <div x-show="sidebarCollapsed" x-cloak class="flex justify-center">
                 <x-theme-toggle compact />
             </div>
-            <span x-cloak x-show="sidebarCollapsed && hover" x-transition
-                class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs font-medium text-foreground shadow-md lg:block">
+            <span x-cloak x-show="sidebarCollapsed && hover" x-transition :style="tt"
+                class="pointer-events-none z-[9999] hidden whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs font-medium text-foreground shadow-md lg:block">
                 Toggle tema
             </span>
         </div>

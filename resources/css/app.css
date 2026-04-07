@@ -249,15 +249,62 @@ textarea:disabled,
     max-height: 34rem;
 }
 
-.tiptap-simple .ticket-editor-toolbar {
+/* Sticky accordion container that holds toolbar + evidence + chat strips */
+.tiptap-simple .ticket-editor-sticky-tools {
     position: sticky;
     top: 0;
     z-index: 20;
+    background: var(--tt-surface);
+    border-bottom: 1px solid var(--tt-border);
+}
+
+.ticket-editor-accordion {
+    border-bottom: 1px solid var(--tt-border);
+}
+
+.ticket-editor-accordion:last-child {
+    border-bottom: none;
+}
+
+.ticket-editor-accordion-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--tt-text);
+    user-select: none;
+    list-style: none;
+    background: var(--tt-surface);
+    transition: background-color 120ms ease;
+}
+
+.ticket-editor-accordion-summary:hover {
+    background: var(--tt-active-bg);
+}
+
+.ticket-editor-accordion-summary::-webkit-details-marker {
+    display: none;
+}
+
+.ticket-editor-accordion-chevron {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    transition: transform 150ms ease;
+    transform: rotate(-90deg);
+}
+
+details[open] > .ticket-editor-accordion-summary .ticket-editor-accordion-chevron {
+    transform: rotate(0deg);
+}
+
+.tiptap-simple .ticket-editor-toolbar {
     display: flex;
     flex-wrap: wrap;
     border-color: var(--tt-border);
     background: var(--tt-surface);
-    border-bottom: 1px solid var(--tt-border);
 }
 
 .ticket-editor-btn {
@@ -476,28 +523,32 @@ input.ticket-editor-select[data-editor-font-size]::-webkit-list-button {
  */
 .incident-modal-form-scroll,
 .ticket-list-scrollbar,
-.ticket-chat-scroll {
+.ticket-chat-scroll,
+.tiptap-simple {
     scrollbar-width: thin;
     scrollbar-color: rgb(var(--border)) rgb(var(--surface));
 }
 
 .incident-modal-form-scroll::-webkit-scrollbar,
 .ticket-list-scrollbar::-webkit-scrollbar,
-.ticket-chat-scroll::-webkit-scrollbar {
+.ticket-chat-scroll::-webkit-scrollbar,
+.tiptap-simple::-webkit-scrollbar {
     width: 10px;
     height: 10px;
 }
 
 .incident-modal-form-scroll::-webkit-scrollbar-track,
 .ticket-list-scrollbar::-webkit-scrollbar-track,
-.ticket-chat-scroll::-webkit-scrollbar-track {
+.ticket-chat-scroll::-webkit-scrollbar-track,
+.tiptap-simple::-webkit-scrollbar-track {
     background: rgb(var(--surface));
     border-radius: 9999px;
 }
 
 .incident-modal-form-scroll::-webkit-scrollbar-thumb,
 .ticket-list-scrollbar::-webkit-scrollbar-thumb,
-.ticket-chat-scroll::-webkit-scrollbar-thumb {
+.ticket-chat-scroll::-webkit-scrollbar-thumb,
+.tiptap-simple::-webkit-scrollbar-thumb {
     background: rgb(var(--border));
     border-radius: 9999px;
     border: 2px solid rgb(var(--surface));
@@ -505,32 +556,37 @@ input.ticket-editor-select[data-editor-font-size]::-webkit-list-button {
 
 .incident-modal-form-scroll::-webkit-scrollbar-thumb:hover,
 .ticket-list-scrollbar::-webkit-scrollbar-thumb:hover,
-.ticket-chat-scroll::-webkit-scrollbar-thumb:hover {
+.ticket-chat-scroll::-webkit-scrollbar-thumb:hover,
+.tiptap-simple::-webkit-scrollbar-thumb:hover {
     background: rgb(var(--border-strong));
 }
 
 .dark .incident-modal-form-scroll,
 .dark .ticket-list-scrollbar,
-.dark .ticket-chat-scroll {
+.dark .ticket-chat-scroll,
+.dark .tiptap-simple {
     scrollbar-color: rgb(var(--border-strong)) rgb(var(--muted));
 }
 
 .dark .incident-modal-form-scroll::-webkit-scrollbar-track,
 .dark .ticket-list-scrollbar::-webkit-scrollbar-track,
-.dark .ticket-chat-scroll::-webkit-scrollbar-track {
+.dark .ticket-chat-scroll::-webkit-scrollbar-track,
+.dark .tiptap-simple::-webkit-scrollbar-track {
     background: rgb(var(--muted));
 }
 
 .dark .incident-modal-form-scroll::-webkit-scrollbar-thumb,
 .dark .ticket-list-scrollbar::-webkit-scrollbar-thumb,
-.dark .ticket-chat-scroll::-webkit-scrollbar-thumb {
+.dark .ticket-chat-scroll::-webkit-scrollbar-thumb,
+.dark .tiptap-simple::-webkit-scrollbar-thumb {
     background: rgb(var(--border-strong));
     border: 2px solid rgb(var(--muted));
 }
 
 .dark .incident-modal-form-scroll::-webkit-scrollbar-thumb:hover,
 .dark .ticket-list-scrollbar::-webkit-scrollbar-thumb:hover,
-.dark .ticket-chat-scroll::-webkit-scrollbar-thumb:hover {
+.dark .ticket-chat-scroll::-webkit-scrollbar-thumb:hover,
+.dark .tiptap-simple::-webkit-scrollbar-thumb:hover {
     background: rgb(113 113 122);
 }
 
@@ -538,4 +594,25 @@ input.ticket-editor-select[data-editor-font-size]::-webkit-list-button {
 .ticket-detail-incident-desc {
     text-align: left !important;
     max-width: 100%;
+}
+
+/*
+ * Icon kalender/jam pada input date / datetime-local native.
+ * Di light mode, browser Chromium memberi icon berwarna putih → tidak terlihat
+ * di latar putih. Filter ini membalik ke warna gelap saat light mode.
+ */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.6);
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.2);
+    opacity: 0.7;
+    cursor: pointer;
 }

@@ -46,6 +46,11 @@ Route::get('/tickets/track/{ticket}/{token}/messages/{message}/attachment', [Tic
     ->where('token', '[^/]+')
     ->name('tickets.track.chat.attachment');
 
+Route::get('/tickets/track/{ticket}/{token}/evidence/{evidence}', [TicketEvidenceController::class, 'showGuest'])
+    ->middleware('throttle:120,1')
+    ->where('token', '[^/]+')
+    ->name('tickets.track.evidence');
+
 Route::get('/tickets/track/{ticket}/{token}', TrackTicketChatPage::class)
     ->middleware('throttle:30,1')
     ->where('token', '[^/]+')

@@ -55,6 +55,8 @@
         }
     },
 }">
+    <div wire:poll.300s="keepAlive" class="hidden" aria-hidden="true"></div>
+
     @if ($analystListMode && auth()->user()?->can('ticket.analyze'))
         <div wire:poll.20s="refreshAssignmentSignal" class="hidden" aria-hidden="true"></div>
     @endif
@@ -358,8 +360,10 @@
                             placeholder="contoh: Indikasi serangan pada sistem X" required />
 
                         <div class="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
-                            <flux:input label="Nama pelapor" wire:model="formReporterName" icon="user" required />
-                            <flux:input label="No. WhatsApp / telepon" wire:model="formReporterPhone" icon="phone" />
+                            <flux:input label="Nama pelapor" wire:model="formReporterName" icon="user"
+                                maxlength="255" required />
+                            <flux:input label="No. WhatsApp / telepon" wire:model="formReporterPhone" icon="phone"
+                                placeholder="08xxxxxxxxxx" maxlength="15" required />
 
                             <div
                                 class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700 md:col-span-2 dark:hover:bg-zinc-800/50">
@@ -667,7 +671,7 @@
                             </div>
                         @endif
                         <div class="space-y-4">
-                            <flux:heading size="lg">Bukti dukung</flux:heading>
+                            <flux:heading size="lg">Bukti Dukung</flux:heading>
                             @if ($detailTicket->evidences->isEmpty())
                                 <flux:text class="text-zinc-500 dark:text-zinc-400">Tidak ada lampiran pada tiket ini.
                                 </flux:text>
@@ -901,16 +905,33 @@
                 </details>
 
                 @can('ticket.chat.view')
-                    <div class="px-1">
-                        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-                            <flux:heading size="lg">Diskusi / Chat</flux:heading>
-                            <flux:button type="button" size="sm" variant="ghost" href="{{ route('tickets.chat', $detailTicket) }}"
-                                wire:navigate>
-                                Buka layar penuh
-                            </flux:button>
+                    <details
+                        class="group rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                        <summary
+                            class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-left outline-none transition hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 dark:hover:bg-zinc-800/60 [&::-webkit-details-marker]:hidden">
+                            <span class="min-w-0 flex-1">
+                                <span
+                                    class="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">Diskusi / Chat</span>
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <flux:button type="button" size="sm" variant="subtle"
+                                    href="{{ route('tickets.chat', $detailTicket) }}" wire:navigate
+                                    @click.stop>
+                                    Buka Layar Penuh
+                                </flux:button>
+                                <svg class="size-4 shrink-0 text-zinc-500 transition-transform duration-200 group-open:rotate-180 sm:size-5 dark:text-zinc-400"
+                                    xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                                    aria-hidden="true">
+                                    <path fill-rule="evenodd"
+                                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </summary>
+                        <div class="border-t border-zinc-200 p-4 dark:border-zinc-700 sm:p-5">
+                            @livewire('ticket.chat', ['ticket' => $detailTicket], key('ticket-chat-detail-' . $detailTicket->id))
                         </div>
-                        @livewire('ticket.chat', ['ticket' => $detailTicket], key('ticket-chat-detail-' . $detailTicket->id))
-                    </div>
+                    </details>
                 @endcan
 
                 @can('verifyReport', $detailTicket)
@@ -968,6 +989,85 @@
                             </div>
                         @endif
                     </flux:card>
+                @endcan
+
+                @can('cancelAssignment', $detailTicket)
+                    @php
+                        $__cancelAssignment = $detailTicket->assignments
+                            ->where('is_active', true)
+                            ->where('kind', \App\Models\TicketAssignment::KIND_ASSIGNED_PRIMARY)
+                            ->sortByDesc('assigned_at')
+                            ->first();
+                        $__cancelAssignedUser = $__cancelAssignment?->user;
+                        $__cancelDeadlineIso = $__cancelAssignment?->assigned_at
+                            ?->copy()
+                            ->addMinutes(\App\Models\Ticket::CANCEL_ASSIGN_WINDOW_MINUTES)
+                            ->toIso8601String();
+                    @endphp
+                    @if ($__cancelAssignment && $__cancelDeadlineIso)
+                        <flux:card
+                            class="space-y-4 border-dashed border-amber-200 p-4 sm:p-5 dark:border-amber-800/50"
+                            x-data="{
+                                deadline: new Date('{{ $__cancelDeadlineIso }}').getTime(),
+                                remaining: 0,
+                                expired: false,
+                                timer: null,
+                                init() {
+                                    this.tick();
+                                    this.timer = setInterval(() => this.tick(), 1000);
+                                },
+                                tick() {
+                                    const diff = Math.max(0, this.deadline - Date.now());
+                                    this.remaining = diff;
+                                    if (diff <= 0) {
+                                        this.expired = true;
+                                        if (this.timer) { clearInterval(this.timer); this.timer = null; }
+                                    }
+                                },
+                                fmt() {
+                                    const s = Math.floor(this.remaining / 1000);
+                                    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+                                },
+                                destroy() { if (this.timer) clearInterval(this.timer); }
+                            }">
+                            <div x-show="!expired">
+                                <flux:heading size="lg">Batalkan Penugasan</flux:heading>
+                                <flux:subheading>
+                                    Tiket saat ini ditugaskan ke
+                                    <strong>{{ $__cancelAssignedUser?->name ?? '—' }}</strong>.
+                                    Anda dapat membatalkan dan menugaskan ulang ke petugas lain dalam rentang waktu yang ditentukan.
+                                </flux:subheading>
+                                <div class="mt-3 flex items-center gap-2">
+                                    <span
+                                        class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                                        <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                            viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                        </svg>
+                                        <span>Sisa waktu: <span x-text="fmt()"></span></span>
+                                    </span>
+                                </div>
+                                <div class="mt-4 flex flex-wrap justify-end gap-2">
+                                    <flux:button type="button" variant="danger"
+                                        @click="openConfirm({
+                                            title: 'Batalkan Penugasan?',
+                                            message: 'Penugasan ke {{ $__cancelAssignedUser?->name ?? 'petugas' }} akan dibatalkan dan tiket kembali ke status siap ditugaskan. Lanjutkan?',
+                                            variant: 'danger',
+                                            action: async () => { await $wire.cancelAssignment(); }
+                                        })"
+                                        wire:loading.attr="disabled">
+                                        <span wire:loading.remove wire:target="cancelAssignment">Batalkan
+                                            Penugasan</span>
+                                        <span wire:loading wire:target="cancelAssignment">Memproses…</span>
+                                    </flux:button>
+                                </div>
+                            </div>
+                            <div x-show="expired" x-cloak class="text-sm text-zinc-500 dark:text-zinc-400">
+                                Batas waktu pembatalan penugasan telah berakhir. Muat ulang halaman jika perlu.
+                            </div>
+                        </flux:card>
+                    @endif
                 @endcan
 
                 @if ($readyForCoordinatorReassign)

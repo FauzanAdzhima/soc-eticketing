@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Ticket;
+use App\Models\TicketAssignment;
 use App\Models\User;
 
 class TicketPolicy
@@ -419,6 +420,46 @@ class TicketPolicy
 
         // Analis/responder ter-assign tidak memegang hak assign; penugasan ulang lewat koordinator / alur PIC saat Open.
         return false;
+    }
+
+    /**
+     * Pembatalan penugasan utama terakhir: diizinkan untuk semua role yang
+     * bisa melakukan assign (PIC, koordinator, admin) selama batas waktu
+     * belum lewat dan petugas yang ditugaskan belum melakukan pekerjaan.
+     */
+    public function cancelAssignment(User $user, Ticket $ticket): bool
+    {
+        if ($ticket->isTerminal()) {
+            return false;
+        }
+
+        $canAssign = $user->hasRole('pic')
+            || ($user->can('ticket.assign') && $user->can('ticket.close'));
+
+        if (! $canAssign) {
+            return false;
+        }
+
+        $assignment = $ticket->assignments()
+            ->where('is_active', true)
+            ->where('kind', TicketAssignment::KIND_ASSIGNED_PRIMARY)
+            ->latest('assigned_at')
+            ->first();
+
+        if ($assignment === null) {
+            return false;
+        }
+
+        if ((int) $assignment->assigned_at->diffInMinutes(now(), true) > Ticket::CANCEL_ASSIGN_WINDOW_MINUTES) {
+            return false;
+        }
+
+        $assignedUserId = $assignment->user_id;
+
+        $hasWorked = $ticket->analyses()->where('performed_by', $assignedUserId)->exists()
+            || $ticket->responseActions()->where('performed_by', $assignedUserId)->exists();
+
+        return ! $hasWorked;
     }
 
     /**

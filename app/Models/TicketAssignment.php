@@ -21,6 +21,12 @@ class TicketAssignment extends Model
         'is_active',
     ];
 
+    protected $casts = [
+        'assigned_at' => 'datetime',
+        'unassigned_at' => 'datetime',
+        'is_active' => 'boolean',
+    ];
+
     public function ticket()
     {
         return $this->belongsTo(Ticket::class);

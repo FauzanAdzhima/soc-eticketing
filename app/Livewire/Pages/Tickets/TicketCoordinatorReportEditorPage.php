@@ -3,6 +3,7 @@
 namespace App\Livewire\Pages\Tickets;
 
 use App\Models\Ticket;
+use App\Models\TicketMessage;
 use App\Models\TicketReport;
 use App\Support\ReportHtmlSanitizer;
 use Carbon\Carbon;
@@ -172,10 +173,19 @@ class TicketCoordinatorReportEditorPage extends Component
             ->where('id', $this->ticketReportId)
             ->firstOrFail();
 
+        $chatAttachments = TicketMessage::query()
+            ->where('ticket_id', $ticket->id)
+            ->whereNotNull('attachment_path')
+            ->where('attachment_path', '!=', '')
+            ->with('user')
+            ->orderBy('created_at')
+            ->get();
+
         return view('livewire.pages.tickets.ticket-coordinator-report-editor-page', [
             'ticket' => $ticket,
             'ticketReport' => $ticketReport,
             'previewHtml' => ReportHtmlSanitizer::sanitize($this->bodyHtml),
+            'chatAttachments' => $chatAttachments,
         ]);
     }
 
@@ -227,6 +237,21 @@ class TicketCoordinatorReportEditorPage extends Component
             ];
         })->values()->all();
 
+        $chatAttachments = $ticket->messages()
+            ->whereNotNull('attachment_path')
+            ->where('attachment_path', '!=', '')
+            ->with('user')
+            ->get()
+            ->map(static function (TicketMessage $msg): array {
+                return [
+                    'original_name' => (string) ($msg->attachment_original_name ?? ''),
+                    'preview_kind' => $msg->attachmentPreviewKind(),
+                    'sender_name' => (string) ($msg->user?->name ?? $msg->guest_name ?? 'Pelapor'),
+                    'visibility' => (string) ($msg->visibility ?? ''),
+                    'sent_at' => $msg->created_at?->toISOString(),
+                ];
+            })->values()->all();
+
         return [
             'ticket' => [
                 'ticket_number' => (string) ($ticket->ticket_number ?? ''),
@@ -245,6 +270,7 @@ class TicketCoordinatorReportEditorPage extends Component
             ],
             'analyses' => $analyses,
             'response_actions' => $responseActions,
+            'chat_attachments' => $chatAttachments,
         ];
     }
 
@@ -253,6 +279,7 @@ class TicketCoordinatorReportEditorPage extends Component
         $ticket = is_array($snapshot['ticket'] ?? null) ? $snapshot['ticket'] : [];
         $analyses = is_array($snapshot['analyses'] ?? null) ? $snapshot['analyses'] : [];
         $responseActions = is_array($snapshot['response_actions'] ?? null) ? $snapshot['response_actions'] : [];
+        $chatAttachments = is_array($snapshot['chat_attachments'] ?? null) ? $snapshot['chat_attachments'] : [];
 
         $html = '<h1>Laporan Insiden</h1>';
         $html .= '<ul>';
@@ -326,6 +353,21 @@ class TicketCoordinatorReportEditorPage extends Component
             foreach ($responseActions as $action) {
                 $html .= '<li>[' . e((string) ($action['action_type'] ?? 'action')) . '] ';
                 $html .= e((string) ($action['description'] ?? '')) . '</li>';
+            }
+            $html .= '</ul>';
+        }
+
+        if ($chatAttachments !== []) {
+            $html .= '<h2>Lampiran dari Chat</h2>';
+            $html .= '<ul>';
+            foreach ($chatAttachments as $attachment) {
+                $html .= '<li>';
+                $html .= e((string) ($attachment['original_name'] ?? 'Lampiran'));
+                $html .= ' — dikirim oleh ' . e((string) ($attachment['sender_name'] ?? '—'));
+                if (! empty($attachment['sent_at'])) {
+                    $html .= ' pada ' . e($this->formatSnapshotDateTime($attachment['sent_at']));
+                }
+                $html .= '</li>';
             }
             $html .= '</ul>';
         }

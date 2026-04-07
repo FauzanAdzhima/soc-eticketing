@@ -132,6 +132,9 @@ class Ticket extends Model
     /** Tiket dihentikan karena laporan ditolak PIC (bukan penutupan koordinator). */
     public const STATUS_REPORT_REJECTED = 'Report Rejected';
 
+    /** Batas waktu (menit) sejak penugasan terakhir yang masih memperbolehkan pembatalan. */
+    public const CANCEL_ASSIGN_WINDOW_MINUTES = 10;
+
     /**
      * @return list<string>
      */
@@ -669,6 +672,102 @@ class Ticket extends Model
         event(new TicketAssigned($this, $userId, $assignedBy));
 
         return $assignment;
+    }
+
+    /**
+     * Batalkan penugasan utama terakhir selama masih dalam batas waktu dan
+     * petugas yang ditugaskan belum melakukan pekerjaan apapun.
+     *
+     * Menangani dua skenario:
+     * 1. Pembatalan penugasan pertama (analis) → tiket kembali ke Open.
+     * 2. Pembatalan handoff (misal responder) → restore primary sebelumnya
+     *    dan hapus record kontributor otomatis yang dibuat saat handoff.
+     */
+    public function cancelLatestAssignment(User $actor): void
+    {
+        $assignment = $this->assignments()
+            ->where('is_active', true)
+            ->where('kind', TicketAssignment::KIND_ASSIGNED_PRIMARY)
+            ->latest('assigned_at')
+            ->first();
+
+        if ($assignment === null) {
+            throw new Exception('Tidak ada penugasan aktif untuk dibatalkan.');
+        }
+
+        $minutesSinceAssign = (int) $assignment->assigned_at->diffInMinutes(now(), true);
+        if ($minutesSinceAssign > self::CANCEL_ASSIGN_WINDOW_MINUTES) {
+            throw new Exception('Batas waktu pembatalan penugasan ('
+                .self::CANCEL_ASSIGN_WINDOW_MINUTES.' menit) telah lewat.');
+        }
+
+        $cancelledUserId = $assignment->user_id;
+
+        $hasWorked = $this->analyses()->where('performed_by', $cancelledUserId)->exists()
+            || $this->responseActions()->where('performed_by', $cancelledUserId)->exists();
+
+        if ($hasWorked) {
+            throw new Exception('Penugasan tidak dapat dibatalkan karena petugas sudah melakukan pekerjaan pada tiket ini.');
+        }
+
+        $assignment->update([
+            'is_active' => false,
+            'unassigned_at' => now(),
+        ]);
+
+        $toleranceSeconds = 5;
+        $previousPrimary = $this->assignments()
+            ->where('id', '!=', $assignment->id)
+            ->where('kind', TicketAssignment::KIND_ASSIGNED_PRIMARY)
+            ->where('is_active', false)
+            ->whereNotNull('unassigned_at')
+            ->whereBetween('unassigned_at', [
+                $assignment->assigned_at->copy()->subSeconds($toleranceSeconds),
+                $assignment->assigned_at->copy()->addSeconds($toleranceSeconds),
+            ])
+            ->orderByDesc('unassigned_at')
+            ->first();
+
+        if ($previousPrimary !== null) {
+            $previousPrimary->update([
+                'is_active' => true,
+                'unassigned_at' => null,
+            ]);
+
+            $this->assignments()
+                ->where('user_id', $previousPrimary->user_id)
+                ->where('kind', TicketAssignment::KIND_CONTRIBUTOR)
+                ->where('is_active', true)
+                ->whereBetween('assigned_at', [
+                    $assignment->assigned_at->copy()->subSeconds($toleranceSeconds),
+                    $assignment->assigned_at->copy()->addSeconds($toleranceSeconds),
+                ])
+                ->update([
+                    'is_active' => false,
+                    'unassigned_at' => now(),
+                ]);
+        } else {
+            if (
+                $this->status === self::STATUS_ON_PROGRESS
+                && $this->sub_status === self::SUB_STATUS_TRIAGE
+                && $this->report_status === self::REPORT_STATUS_VERIFIED
+            ) {
+                $this->status = self::STATUS_OPEN;
+                $this->sub_status = null;
+                $this->save();
+            }
+        }
+
+        TicketLog::create([
+            'ticket_id' => $this->id,
+            'user_id' => $actor->id,
+            'action' => 'assignment_cancelled',
+            'data' => json_encode([
+                'cancelled_user_id' => $cancelledUserId,
+                'assignment_id' => $assignment->id,
+                'restored_user_id' => $previousPrimary?->user_id,
+            ]),
+        ]);
     }
 
     private function applyHandoffToAnalystAfterPrimaryAssign(int $assigneeUserId): void

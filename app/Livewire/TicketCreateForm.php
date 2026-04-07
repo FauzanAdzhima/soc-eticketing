@@ -181,9 +181,9 @@ class TicketCreateForm extends Component
         return [
             'selectedCategoryId' => 'required|exists:incident_categories,id',
             'formData.title' => 'required|string|max:255',
-            'formData.reporter_name' => 'required|string|max:255',
+            'formData.reporter_name' => ['required', 'string', 'max:255', 'regex:/^[\pL\s\.\-\']+$/u'],
             'formData.reporter_email' => 'required|email|max:255',
-            'formData.reporter_phone' => 'nullable|string|max:30',
+            'formData.reporter_phone' => ['required', 'string', 'max:15', 'regex:/^(\+62|62|08)\d+$/'],
             'formData.reporter_organization_id' => 'nullable|exists:organizations,id',
             'formData.reporter_organization_name' => 'nullable|string|max:255',
             'formData.incident_severity' => 'required|in:Low,Medium,High,Critical',
@@ -191,6 +191,15 @@ class TicketCreateForm extends Component
             'formData.incident_description' => 'required|string',
             'evidenceFiles' => 'nullable|array',
             'evidenceFiles.*' => 'image|max:5120|mimes:jpg,jpeg,png,gif,webp',
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'formData.reporter_name.regex' => 'Nama hanya boleh berisi huruf, spasi, titik, dan tanda hubung.',
+            'formData.reporter_phone.regex' => 'Nomor telepon harus diawali 08, 62, atau +62.',
+            'formData.reporter_phone.max' => 'Nomor telepon maksimal 15 karakter.',
         ];
     }
 }

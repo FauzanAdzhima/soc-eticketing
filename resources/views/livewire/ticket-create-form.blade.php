@@ -46,8 +46,9 @@
                         {{ $createdReporterChatToken }}
                     </div>
                     <flux:text class="mx-auto mt-4 max-w-md text-center text-sm">
-                        Simpan nomor tiket dan token ini. Setelah email aktif, Anda juga akan menerima tautan lacak lewat
-                        surel. Untuk melacak sekarang, gunakan menu
+                        Simpan nomor tiket dan token ini. 
+                        {{-- Setelah email aktif, Anda juga akan menerima tautan lacak lewat surel.  --}}
+                        Untuk melacak sekarang, gunakan menu
                         <a href="{{ route('tickets.track.search') }}"
                             class="font-medium text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary">Cari
                             Tiket</a>
@@ -67,17 +68,17 @@
 
                 <flux:separator class="h-4 mb-2" />
 
-                <div class="incident-modal-form-scroll max-h-[65vh] overflow-y-auto pr-1">
+                <div class="incident-modal-form-scroll max-h-[65vh] overflow-y-auto px-2 py-1">
                     <form wire:submit="submitIncident" class="space-y-5 sm:space-y-6">
                     <flux:input label="Subjek Aduan" wire:model.defer="formData.title"
                         placeholder="cont: Indikasi serangan pada sistem X" required />
 
                     <div class="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2 sm:gap-y-6">
                         <flux:input label="Nama Lengkap" wire:model.defer="formData.reporter_name" icon="user"
-                            placeholder="John Doe" required />
+                            placeholder="John Doe" maxlength="255" required />
 
                         <flux:input label="No. WhatsApp/Telepon" wire:model.defer="formData.reporter_phone"
-                            icon="phone" placeholder="081234567890" required />
+                            icon="phone" placeholder="08xxxxxxxxxx" maxlength="15" required />
 
                         <div class="rounded-lg border border-border-strong p-4 md:col-span-2 hover:bg-muted/80">
                             <flux:checkbox wire:model.live="isOfficialEmployee"
